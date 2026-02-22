@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiplexing & Demultiplexing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1e2d45;
+    --accent1: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #a855f7;
+    --accent4: #22c55e;
+    --accent5: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 18px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Hero */
+  header {
+    padding: 80px 0 60px;
+    text-align: center;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent1);
+    border: 1px solid var(--accent1);
+    padding: 4px 14px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  h1 {
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    animation: fadeUp 0.7s ease 0.1s both;
+  }
+
+  h1 span.mux { color: var(--accent1); }
+  h1 span.demux { color: var(--accent2); }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 auto;
+    animation: fadeUp 0.7s ease 0.2s both;
+  }
+
+  /* Section styles */
+  section {
+    margin-bottom: 80px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #94a3b8;
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.9;
+    margin-bottom: 12px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* ===== DIAGRAM 1: Multiplexing ===== */
+  .diagram {
+    background: #0d1424;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    margin: 32px 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .diagram-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .mux-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-height: 280px;
+  }
+
+  /* Apps column */
+  .apps-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 0 0 160px;
+  }
+
+  .app-box {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid;
+    position: relative;
+  }
+
+  .app-box .port-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: auto;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+
+  /* Animated wires */
+  .wires-svg {
+    flex: 1;
+    height: 280px;
+  }
+
+  /* Transport box */
+  .transport-box {
+    flex: 0 0 130px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 14px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    position: relative;
+  }
+
+  .transport-box .label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .transport-box .main {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .transport-box .sublabel {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Network arrow */
+  .network-arrow {
+    flex: 0 0 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Segment visual */
+  .segment {
+    background: linear-gradient(135deg, #1e3a5f, #162d4a);
+    border: 1px solid #2a4a6e;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    flex: 0 0 140px;
+  }
+
+  .segment-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .seg-field {
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: 9px;
+    text-align: center;
+    flex: 1;
+  }
+
+  .seg-data {
+    border-radius: 3px;
+    padding: 6px;
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    border: 1px dashed #2a4a6e;
+  }
+
+  /* Flow animations */
+  @keyframes flowRight {
+    0% { stroke-dashoffset: 100; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0.3; }
+  }
+
+  @keyframes flowLeft {
+    0% { stroke-dashoffset: -100; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0.3; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .wire-animated {
+    stroke-dasharray: 8 4;
+    animation: flowRight 1.8s linear infinite;
+  }
+
+  .wire-animated-delay1 { animation-delay: 0.3s; }
+  .wire-animated-delay2 { animation-delay: 0.6s; }
+  .wire-animated-delay3 { animation-delay: 0.9s; }
+  .wire-animated-delay4 { animation-delay: 1.2s; }
+
+  /* Port number table */
+  .port-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 14px;
+    margin-top: 20px;
+  }
+
+  .port-table th {
+    background: #111827;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .port-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: #94a3b8;
+  }
+
+  .port-table tr:last-child td { border-bottom: none; }
+  .port-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .highlight { font-weight: 700; }
+  .c1 { color: var(--accent1); }
+  .c2 { color: var(--accent2); }
+  .c3 { color: var(--accent3); }
+  .c4 { color: var(--accent4); }
+  .c5 { color: var(--accent5); }
+
+  /* Comparison grid */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 28px;
+  }
+
+  .compare-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    border-top: 3px solid;
+  }
+
+  .compare-card h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+
+  .compare-card p {
+    font-size: 12px;
+  }
+
+  /* TCP vs UDP */
+  .proto-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 28px;
+  }
+
+  .proto-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .proto-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+
+  .proto-card h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; }
+
+  /* Tuple visual */
+  .tuple-vis {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+
+  .tuple-item {
+    background: #0d1424;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .tuple-item .ti-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .tuple-item .ti-val {
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .plus-sep {
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding-top: 14px;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Scroll animations */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .compare-grid, .proto-grid { grid-template-columns: 1fr; }
+    .mux-diagram { flex-direction: column; align-items: flex-start; }
+    .wires-svg { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="tag"> Computer Networks · Transport Layer</div>
+    <h1><span class="mux">Multiplexing</span> &<br><span class="demux">Demultiplexing</span></h1>
+    <p class="subtitle">How the transport layer manages multiple applications sharing a single network connection.</p>
+  </header>
+
+  <!-- CONCEPT OVERVIEW -->
+  <section class="reveal">
+    <div class="section-label">// 01 — Overview</div>
+    <h2>The Core Idea</h2>
+    <p>Your computer runs dozens of apps simultaneously — a browser, email client, video call, file transfer. All of them share one physical network interface. So how does each app's data reach the right destination, and how does incoming data reach the right app?</p>
+    <p>The answer is <strong style="color:var(--accent1)">Multiplexing</strong> (at the sender) and <strong style="color:var(--accent2)">Demultiplexing</strong> (at the receiver), performed by the Transport Layer using <strong style="color:var(--accent4)">port numbers</strong>.</p>
+
+    <div class="compare-grid">
+      <div class="compare-card" style="border-color: var(--accent1);">
+        <h3 class="c1">Multiplexing</h3>
+        <p>At the <strong>sender</strong>. Collects data from multiple application sockets, wraps each in a segment with header info (port numbers), and sends them through the network layer.</p>
+        <p style="margin-top:10px; color: var(--accent1); font-size:11px;">Many → One</p>
+      </div>
+      <div class="compare-card" style="border-color: var(--accent2);">
+        <h3 class="c2">Demultiplexing</h3>
+        <p>At the <strong>receiver</strong>. Examines incoming segments, reads the destination port, and delivers each segment's data to the correct application socket.</p>
+        <p style="margin-top:10px; color: var(--accent2); font-size:11px;">One → Many</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIAGRAM 1: MULTIPLEXING -->
+  <section class="reveal">
+    <div class="section-label">// 02 — Diagram</div>
+    <h2>Multiplexing at the Sender</h2>
+    <p>Multiple application processes generate data. The transport layer tags each chunk with source & destination port numbers, forming a segment, then hands it to the network layer.</p>
+
+    <div class="diagram">
+      <div class="diagram-title">// Multiplexing — Sender Side</div>
+
+      <div class="mux-diagram">
+
+        <!-- Apps -->
+        <div class="apps-col">
+          <div class="app-box" style="border-color: var(--accent1); color: var(--accent1);">
+            <span>🌐</span>
+            <span>Browser</span>
+            <span class="port-badge" style="background: rgba(0,212,255,0.15); color: var(--accent1);">:443</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent2); color: var(--accent2);">
+            <span>📧</span>
+            <span>Email</span>
+            <span class="port-badge" style="background: rgba(255,107,53,0.15); color: var(--accent2);">:25</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent3); color: var(--accent3);">
+            <span>📁</span>
+            <span>FTP</span>
+            <span class="port-badge" style="background: rgba(168,85,247,0.15); color: var(--accent3);">:21</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent4); color: var(--accent4);">
+            <span>🎮</span>
+            <span>Game</span>
+            <span class="port-badge" style="background: rgba(34,197,94,0.15); color: var(--accent4);">:27015</span>
+          </div>
+        </div>
+
+        <!-- SVG wires converging -->
+        <svg class="wires-svg" viewBox="0 0 200 280" preserveAspectRatio="none">
+          <!-- Browser wire -->
+          <path d="M 0,45 Q 120,45 200,140" fill="none" stroke="#00d4ff" stroke-width="1.5" class="wire-animated" />
+          <!-- Email wire -->
+          <path d="M 0,107 Q 110,107 200,140" fill="none" stroke="#ff6b35" stroke-width="1.5" class="wire-animated wire-animated-delay1" />
+          <!-- FTP wire -->
+          <path d="M 0,168 Q 110,168 200,140" fill="none" stroke="#a855f7" stroke-width="1.5" class="wire-animated wire-animated-delay2" />
+          <!-- Game wire -->
+          <path d="M 0,230 Q 120,230 200,140" fill="none" stroke="#22c55e" stroke-width="1.5" class="wire-animated wire-animated-delay3" />
+
+          <!-- Dots at convergence point -->
+          <circle cx="200" cy="140" r="5" fill="#1e3a5f" stroke="#2a6aad" stroke-width="1.5" />
+        </svg>
+
+        <!-- Transport Layer Box -->
+        <div class="transport-box" style="animation: pulse 2s ease infinite;">
+          <div class="label">Transport</div>
+          <div class="main" style="color: var(--accent1);">MUX</div>
+          <div class="sublabel">Adds port headers<br>to each segment</div>
+        </div>
+
+        <!-- Arrow right -->
+        <div class="network-arrow">
+          <svg width="60" height="20" viewBox="0 0 60 20">
+            <line x1="0" y1="10" x2="50" y2="10" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 2"/>
+            <polygon points="50,6 60,10 50,14" fill="#64748b"/>
+          </svg>
+          <span>Network<br>Layer ↓</span>
+        </div>
+
+        <!-- Segment visual -->
+        <div class="segment">
+          <div style="font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">Segment</div>
+          <div class="segment-row">
+            <div class="seg-field" style="background: rgba(0,212,255,0.15); color:var(--accent1);">Src Port</div>
+            <div class="seg-field" style="background: rgba(255,107,53,0.15); color:var(--accent2);">Dst Port</div>
+          </div>
+          <div class="segment-row">
+            <div class="seg-field" style="background: rgba(168,85,247,0.1); color:var(--accent3); flex: 2;">Other Header Fields</div>
+          </div>
+          <div class="seg-data">Application Data (Payload)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- DIAGRAM 2: DEMULTIPLEXING -->
+  <section class="reveal">
+    <div class="section-label">// 03 — Diagram</div>
+    <h2>Demultiplexing at the Receiver</h2>
+    <p>Incoming segments arrive at the transport layer. It reads the destination port number in each segment's header and routes the payload to the correct application socket.</p>
+
+    <div class="diagram">
+      <div class="diagram-title">// Demultiplexing — Receiver Side</div>
+
+      <div class="mux-diagram">
+
+        <!-- Incoming segments -->
+        <div class="segment" style="flex: 0 0 130px;">
+          <div style="font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">Incoming</div>
+          <div class="segment-row">
+            <div class="seg-field" style="background: rgba(0,212,255,0.15); color:var(--accent1);">Src</div>
+            <div class="seg-field" style="background: rgba(255,107,53,0.15); color:var(--accent2);">Dst:443</div>
+          </div>
+          <div class="seg-data" style="margin-top:4px;">Data...</div>
+          <div class="segment-row" style="margin-top:6px;">
+            <div class="seg-field" style="background: rgba(0,212,255,0.15); color:var(--accent1);">Src</div>
+            <div class="seg-field" style="background: rgba(168,85,247,0.2); color:var(--accent3);">Dst:25</div>
+          </div>
+          <div class="seg-data" style="margin-top:4px;">Data...</div>
+          <div class="segment-row" style="margin-top:6px;">
+            <div class="seg-field" style="background: rgba(0,212,255,0.15); color:var(--accent1);">Src</div>
+            <div class="seg-field" style="background: rgba(34,197,94,0.2); color:var(--accent4);">Dst:21</div>
+          </div>
+          <div class="seg-data" style="margin-top:4px;">Data...</div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="network-arrow">
+          <svg width="60" height="20" viewBox="0 0 60 20">
+            <line x1="0" y1="10" x2="50" y2="10" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 2"/>
+            <polygon points="50,6 60,10 50,14" fill="#64748b"/>
+          </svg>
+          <span>Network<br>Layer ↑</span>
+        </div>
+
+        <!-- Transport DEMUX box -->
+        <div class="transport-box" style="animation: pulse 2s ease infinite;">
+          <div class="label">Transport</div>
+          <div class="main" style="color: var(--accent2);">DEMUX</div>
+          <div class="sublabel">Reads dest port,<br>routes to socket</div>
+        </div>
+
+        <!-- SVG wires fanning out -->
+        <svg class="wires-svg" viewBox="0 0 200 280" preserveAspectRatio="none">
+          <path d="M 0,140 Q 80,140 200,45" fill="none" stroke="#00d4ff" stroke-width="1.5" class="wire-animated" />
+          <path d="M 0,140 Q 80,140 200,107" fill="none" stroke="#ff6b35" stroke-width="1.5" class="wire-animated wire-animated-delay1" />
+          <path d="M 0,140 Q 80,140 200,168" fill="none" stroke="#a855f7" stroke-width="1.5" class="wire-animated wire-animated-delay2" />
+          <path d="M 0,140 Q 80,140 200,230" fill="none" stroke="#22c55e" stroke-width="1.5" class="wire-animated wire-animated-delay3" />
+          <circle cx="0" cy="140" r="5" fill="#1e3a5f" stroke="#2a6aad" stroke-width="1.5"/>
+        </svg>
+
+        <!-- Apps receiving -->
+        <div class="apps-col">
+          <div class="app-box" style="border-color: var(--accent1); color: var(--accent1);">
+            <span>🌐</span>
+            <span>Browser</span>
+            <span class="port-badge" style="background: rgba(0,212,255,0.15); color: var(--accent1);">:443</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent2); color: var(--accent2);">
+            <span>📧</span>
+            <span>Email</span>
+            <span class="port-badge" style="background: rgba(255,107,53,0.15); color: var(--accent2);">:25</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent3); color: var(--accent3);">
+            <span>📁</span>
+            <span>FTP</span>
+            <span class="port-badge" style="background: rgba(168,85,247,0.15); color: var(--accent3);">:21</span>
+          </div>
+          <div class="app-box" style="border-color: var(--accent4); color: var(--accent4);">
+            <span>🎮</span>
+            <span>Game</span>
+            <span class="port-badge" style="background: rgba(34,197,94,0.15); color: var(--accent4);">:27015</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PORT NUMBERS -->
+  <section class="reveal">
+    <div class="section-label">// 04 — Port Numbers</div>
+    <h2>How Port Numbers Work</h2>
+    <p>Port numbers are 16-bit integers (0–65535). They act as the "apartment numbers" in a building — the IP address is the building, the port number is the specific unit.</p>
+
+    <div class="card">
+      <table class="port-table">
+        <thead>
+          <tr>
+            <th>Range</th>
+            <th>Name</th>
+            <th>Examples</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight c1">0 – 1023</td>
+            <td>Well-Known Ports</td>
+            <td class="c1">HTTP:80, HTTPS:443, FTP:21, SMTP:25, DNS:53</td>
+          </tr>
+          <tr>
+            <td class="highlight c3">1024 – 49151</td>
+            <td>Registered Ports</td>
+            <td class="c3">MySQL:3306, PostgreSQL:5432, Redis:6379</td>
+          </tr>
+          <tr>
+            <td class="highlight c4">49152 – 65535</td>
+            <td>Dynamic / Ephemeral</td>
+            <td class="c4">Assigned temporarily to client-side connections</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- UDP vs TCP DEMUX -->
+  <section class="reveal">
+    <div class="section-label">// 05 — UDP vs TCP</div>
+    <h2>Connectionless vs Connection-Oriented</h2>
+    <p>UDP and TCP demultiplex differently. UDP uses a 2-tuple; TCP uses a 4-tuple, enabling far more precise socket routing.</p>
+
+    <div class="proto-grid">
+      <!-- UDP -->
+      <div class="proto-card">
+        <span class="proto-tag" style="background: rgba(245,158,11,0.15); color: var(--accent5);">UDP</span>
+        <h3 class="c5">2-Tuple Demux</h3>
+        <p>UDP only checks the <strong>destination IP + destination port</strong>. Any segment arriving at that port goes to the same socket, regardless of source.</p>
+
+        <div class="tuple-vis">
+          <div class="tuple-item">
+            <div class="ti-label">Dst IP</div>
+            <div class="ti-val c5">192.168.1.1</div>
+          </div>
+          <div class="plus-sep">+</div>
+          <div class="tuple-item">
+            <div class="ti-label">Dst Port</div>
+            <div class="ti-val c5">53</div>
+          </div>
+        </div>
+        <p style="font-size:11px;">Used by: DNS, video streaming, gaming — speed over reliability.</p>
+      </div>
+
+      <!-- TCP -->
+      <div class="proto-card">
+        <span class="proto-tag" style="background: rgba(0,212,255,0.1); color: var(--accent1);">TCP</span>
+        <h3 class="c1">4-Tuple Demux</h3>
+        <p>TCP uses the <strong>full 4-tuple</strong> to identify each connection. A server on port 443 can handle thousands of simultaneous connections, each with its own socket.</p>
+
+        <div class="tuple-vis">
+          <div class="tuple-item">
+            <div class="ti-label">Src IP</div>
+            <div class="ti-val c3">10.0.0.5</div>
+          </div>
+          <div class="plus-sep">+</div>
+          <div class="tuple-item">
+            <div class="ti-label">Src Port</div>
+            <div class="ti-val c3">52841</div>
+          </div>
+          <div class="plus-sep">+</div>
+          <div class="tuple-item">
+            <div class="ti-label">Dst IP</div>
+            <div class="ti-val c1">93.184.216.34</div>
+          </div>
+          <div class="plus-sep">+</div>
+          <div class="tuple-item">
+            <div class="ti-label">Dst Port</div>
+            <div class="ti-val c1">443</div>
+          </div>
+        </div>
+        <p style="font-size:11px;">Used by: HTTP, email, file transfer — reliability over speed.</p>
+      </div>
+    </div>
+  </section>
+
+  
+
+  <!-- SUMMARY TABLE -->
+  <section class="reveal">
+    <div class="section-label">// 07 — Summary</div>
+    <h2>At a Glance</h2>
+
+    <div class="card">
+      <table class="port-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th style="color:var(--accent1)">Multiplexing</th>
+            <th style="color:var(--accent2)">Demultiplexing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight">Where</td>
+            <td class="c1">Sender side</td>
+            <td class="c2">Receiver side</td>
+          </tr>
+          <tr>
+            <td class="highlight">Action</td>
+            <td class="c1">Combines data from many sockets → network</td>
+            <td class="c2">Delivers incoming data → correct socket</td>
+          </tr>
+          <tr>
+            <td class="highlight">Direction</td>
+            <td class="c1">Many → One</td>
+            <td class="c2">One → Many</td>
+          </tr>
+          <tr>
+            <td class="highlight">Key Mechanism</td>
+            <td class="c1">Adds port numbers to headers</td>
+            <td class="c2">Reads dest port to route data</td>
+          </tr>
+          <tr>
+            <td class="highlight">UDP uses</td>
+            <td colspan="2" class="c5" style="text-align:center;">2-tuple: Dst IP + Dst Port</td>
+          </tr>
+          <tr>
+            <td class="highlight">TCP uses</td>
+            <td colspan="2" class="c1" style="text-align:center;">4-tuple: Src IP + Src Port + Dst IP + Dst Port</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <span style="color: var(--accent1);">MUX</span> / <span style="color: var(--accent2);">DEMUX</span> · Transport Layer · Computer Networks
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
