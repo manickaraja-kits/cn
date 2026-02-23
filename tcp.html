@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCP — Transmission Control Protocol</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Clash+Display:wght@400;600;700&family=Manrope:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0f19;
+  --surface: #111827;
+  --surface2: #162032;
+  --border: #1e2d45;
+  --border2: #243348;
+  --tcp: #3b82f6;
+  --tcp-light: #60a5fa;
+  --tcp-dim: rgba(59,130,246,0.15);
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.15);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.15);
+  --yellow: #f59e0b;
+  --yellow-dim: rgba(245,158,11,0.15);
+  --purple: #8b5cf6;
+  --purple-dim: rgba(139,92,246,0.15);
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Manrope', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 20px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* Grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========== NAV ========== */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(11,15,25,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+}
+
+.nav-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-link {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.nav-link:hover { color: var(--tcp-light); background: var(--tcp-dim); }
+
+/* ========== LAYOUT ========== */
+.container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 28px;
+  position: relative;
+  z-index: 1;
+}
+
+section {
+  padding: 80px 0 60px;
+  border-bottom: 1px solid var(--border);
+}
+
+section:last-child { border-bottom: none; }
+
+.sec-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--tcp);
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: clamp(2.2rem, 4.5vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+  line-height: 1.15;
+}
+
+h3 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  margin-top: 32px;
+}
+
+p {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--muted2);
+  line-height: 1.9;
+  margin-bottom: 14px;
+  max-width: 780px;
+}
+
+p strong { color: var(--text); font-weight: 500; }
+
+/* ========== HERO ========== */
+#hero {
+  padding: 100px 0 80px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--tcp-light);
+  border: 1px solid var(--border2);
+  background: var(--tcp-dim);
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 28px;
+}
+
+.hero-badge::before { content: '●'; color: var(--tcp); animation: blink 1.5s ease infinite; }
+
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+h1 {
+  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-weight: 900;
+  letter-spacing: -3px;
+  line-height: 1.0;
+  margin-bottom: 16px;
+}
+
+h1 .tcp-accent { color: var(--tcp); }
+h1 .sub { display: block; font-size: 0.32em; font-weight: 400; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 10px; }
+
+.hero-desc {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--muted2);
+  max-width: 600px;
+  border-left: 3px solid var(--tcp);
+  padding-left: 18px;
+  margin-top: 24px;
+  line-height: 1.9;
+}
+
+.hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 32px;
+}
+
+.pill {
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+/* ========== CARDS ========== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.card-top { height: 3px; position: absolute; top: 0; left: 0; right: 0; border-radius: 14px 14px 0 0; }
+.card-icon { font-size: 1.8rem; margin-bottom: 10px; }
+.card h4 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+.card p { font-size: 14px; margin: 0; max-width: none; }
+
+/* ========== SEGMENT DIAGRAM ========== */
+.seg-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  margin: 28px 0;
+}
+
+.bit-ruler {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.seg-row {
+  display: flex;
+  border: 1px solid var(--border2);
+  border-bottom: none;
+}
+
+.seg-row:last-of-type { border-bottom: 1px solid var(--border2); }
+
+.sf {
+  flex: 1;
+  padding: 12px 8px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  border-right: 1px solid var(--border2);
+  position: relative;
+}
+
+.sf:last-child { border-right: none; }
+.sf .bits { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
+.sf-2 { flex: 2; }
+.sf-4 { flex: 4; }
+.sf-6 { flex: 6; }
+
+.sf-sp   { background: rgba(59,130,246,0.1);  color: var(--tcp-light); }
+.sf-dp   { background: rgba(16,185,129,0.1);  color: #34d399; }
+.sf-seq  { background: rgba(245,158,11,0.1);  color: #fbbf24; }
+.sf-ack  { background: rgba(239,68,68,0.1);   color: #f87171; }
+.sf-off  { background: rgba(139,92,246,0.1);  color: #a78bfa; }
+.sf-res  { background: rgba(100,116,139,0.1); color: var(--muted); }
+.sf-flg  { background: rgba(236,72,153,0.1);  color: #f472b6; }
+.sf-win  { background: rgba(6,182,212,0.1);   color: #67e8f9; }
+.sf-chk  { background: rgba(16,185,129,0.1);  color: #34d399; }
+.sf-urg  { background: rgba(245,158,11,0.1);  color: #fbbf24; }
+.sf-opt  { background: rgba(100,116,139,0.08);color: var(--muted); font-style:italic; }
+.sf-dat  { background: rgba(139,92,246,0.07); color: #a78bfa; min-height: 50px; }
+
+.flags-detail {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.flag-chip {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+/* ========== TABLES ========== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 15px;
+  margin-top: 20px;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.data-table th {
+  background: var(--surface2);
+  padding: 12px 18px;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted2);
+  vertical-align: top;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+.data-table td:first-child { color: var(--text); font-weight: 500; }
+
+/* ========== FORMULA BOX ========== */
+.formula-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--tcp);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 20px 0;
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.formula-box .f-title {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.formula-box .f-eq {
+  color: var(--tcp-light);
+  font-size: 18px;
+  margin: 6px 0;
+}
+
+.formula-box .f-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 8px;
+  line-height: 1.8;
+}
+
+/* ========== TIMELINE / LADDER DIAGRAMS ========== */
+.ladder {
+  display: flex;
+  gap: 0;
+  margin: 28px 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ladder-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 8px;
+}
+
+.ladder-col.entity {
+  flex: 0 0 110px;
+  padding: 20px 12px;
+}
+
+.ladder-col.channel { flex: 1; position: relative; }
+
+.entity-header {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 12px;
+  width: 100%;
+}
+
+.entity-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border2);
+  position: relative;
+}
+
+.ladder-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  width: 100%;
+}
+
+.msg-arrow {
+  flex: 1;
+  height: 2px;
+  position: relative;
+}
+
+.msg-arrow::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -4px;
+  border: 5px solid transparent;
+}
+
+.arrow-right { background: var(--tcp); }
+.arrow-right::after { border-left-color: var(--tcp); }
+.arrow-left  { background: var(--green); }
+.arrow-left-r::after { border-right-color: var(--green); left: 0; right: auto; }
+
+.msg-label {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ========== SIMULATION STYLES ========== */
+.sim-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  margin-top: 24px;
+}
+
+.sim-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tcp);
+  animation: blink 1.5s ease infinite;
+}
+
+.sim-btn {
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 11px 20px;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.sim-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.sim-btn:active { transform: translateY(0); }
+.btn-blue  { background: var(--tcp-dim); border-color: var(--tcp); color: var(--tcp-light); }
+.btn-green { background: var(--green-dim); border-color: var(--green); color: #34d399; }
+.btn-red   { background: var(--red-dim); border-color: var(--red); color: #f87171; }
+.btn-gray  { background: transparent; border-color: var(--border2); color: var(--muted); }
+
+.sim-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* Canvas area */
+.sim-canvas {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+/* Handshake sim */
+.hs-stage {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 0;
+  min-height: 260px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.hs-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+}
+
+.hs-node-header {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 18px;
+  text-align: center;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.hs-node-header .nh-icon { font-size: 1.5rem; margin-bottom: 4px; }
+.hs-node-header .nh-name { font-weight: 700; font-size: 13px; }
+.hs-node-header .nh-ip { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.hs-node-header .nh-state { font-size: 10px; margin-top: 6px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+
+.hs-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding-top: 70px;
+}
+
+.hs-line { width: 2px; flex: 1; background: var(--border2); }
+
+.hs-msg {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  width: calc(200% + 80px);
+  left: calc(-100% - 0px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hs-arrow-line {
+  flex: 1;
+  height: 2px;
+  position: relative;
+}
+
+.hs-arrow-r { background: var(--tcp); }
+.hs-arrow-r::after { content:''; position:absolute; right:-1px; top:-5px; border:6px solid transparent; border-left-color: var(--tcp); }
+.hs-arrow-l { background: var(--green); }
+.hs-arrow-l::before { content:''; position:absolute; left:-1px; top:-5px; border:6px solid transparent; border-right-color: var(--green); }
+
+.hs-msg-label {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+}
+
+.hs-msg.visible { opacity: 1; }
+
+/* RTT Sim */
+.rtt-chart {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  min-height: 200px;
+}
+
+.rtt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  animation: fadeInRow 0.4s ease;
+}
+
+@keyframes fadeInRow { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; } }
+
+.rtt-sample-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--tcp-dim);
+  border: 1px solid var(--tcp);
+  min-width: 10px;
+  transition: width 0.4s ease;
+}
+
+.rtt-srtt-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--yellow-dim);
+  border: 1px solid var(--yellow);
+  min-width: 10px;
+  transition: width 0.4s ease;
+}
+
+.rtt-to-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  min-width: 10px;
+  transition: width 0.4s ease;
+}
+
+/* Flow control sim */
+.buffer-vis {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.buf-slot {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-family: var(--mono);
+}
+
+.buf-slot.filled { background: var(--tcp-dim); border-color: var(--tcp); color: var(--tcp-light); }
+.buf-slot.full   { background: var(--red-dim); border-color: var(--red); color: #f87171; }
+
+/* Sliding window */
+.sw-vis {
+  display: flex;
+  gap: 3px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.sw-seg {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+  transition: all 0.35s ease;
+}
+
+.sw-acked  { background: var(--green-dim); border-color: var(--green); color: #34d399; }
+.sw-inwin  { background: var(--tcp-dim);   border-color: var(--tcp);   color: var(--tcp-light); }
+.sw-unsent { background: var(--surface);   border-color: var(--border); color: var(--muted); }
+.sw-transit{ background: var(--yellow-dim); border-color: var(--yellow); color: #fbbf24; animation: pulseWin 0.8s ease infinite; }
+
+@keyframes pulseWin { 0%,100%{opacity:0.7;} 50%{opacity:1;} }
+
+/* Status log */
+.status-log {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 2;
+  margin-top: 14px;
+}
+
+/* Labels */
+.sw-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.sw-leg-item { display: flex; align-items: center; gap: 6px; }
+.sw-leg-dot  { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
+
+/* ========== CONNECTION STATES ========== */
+.state-machine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.state-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.state-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+  flex: 0 0 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.state-box.active-state {
+  border-color: var(--tcp);
+  background: var(--tcp-dim);
+  color: var(--tcp-light);
+}
+
+.state-arrow {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.reveal.visible { opacity: 1; transform: none; }
+
+/* Highlight box */
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin: 16px 0;
+}
+
+.info-box p { max-width: none; margin: 0; font-size: 15px; }
+
+/* Section divider line */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--tcp), transparent);
+  margin: 32px 0;
+  opacity: 0.3;
+}
+
+footer {
+  padding: 50px 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width:640px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .sb-form { grid-template-columns: 1fr; }
+  h1 { letter-spacing: -1px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-link" href="#intro">01 Intro</a>
+    <a class="nav-link" href="#segment">02 Segment</a>
+    <a class="nav-link" href="#rtt">03 RTT & Timeout</a>
+    <a class="nav-link" href="#reliable">04 Reliable Transfer</a>
+    <a class="nav-link" href="#flowctrl">05 Flow Control</a>
+    <a class="nav-link" href="#connmgmt">06 Connection Mgmt</a>
+    <a class="nav-link" href="#simulation">07 Simulation</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ========== HERO ========== -->
+<section id="hero">
+  <div class="hero-badge">Transport Layer · RFC 793</div>
+  <h1>
+    <span class="tcp-accent">TCP</span>
+    <span class="sub">Transmission Control Protocol</span>
+  </h1>
+  <p class="hero-desc">
+    The reliable, connection-oriented backbone of the internet. TCP guarantees ordered delivery, error detection, flow control, and congestion control — so applications don't have to.
+  </p>
+  <div class="hero-pills">
+    <span class="pill" style="border-color:var(--tcp); color:var(--tcp-light); background:var(--tcp-dim);">Connection-Oriented</span>
+    <span class="pill" style="border-color:var(--green); color:#34d399; background:var(--green-dim);">Reliable Delivery</span>
+    <span class="pill" style="border-color:var(--yellow); color:#fbbf24; background:var(--yellow-dim);">Flow Control</span>
+    <span class="pill" style="border-color:var(--purple); color:#a78bfa; background:var(--purple-dim);">Full-Duplex</span>
+    <span class="pill" style="border-color:#f472b6; color:#f472b6; background:rgba(244,114,182,0.1);">Byte-Stream Service</span>
+  </div>
+</section>
+
+<!-- ========== 01 INTRO ========== -->
+<section id="intro" class="reveal">
+  <div class="sec-label">// 01 — Introduction</div>
+  <h2>What is TCP?</h2>
+
+  <p>TCP (Transmission Control Protocol), defined in <strong>RFC 793</strong>, is a transport-layer protocol that provides a <strong>reliable, ordered, byte-stream service</strong> between two applications. While IP handles routing packets across the internet (with no delivery guarantees), TCP sits on top and provides the guarantees that most applications depend on.</p>
+
+  <p>TCP is <strong>connection-oriented</strong> — before data flows, the two parties perform a <strong>three-way handshake</strong> to establish a connection. At the end, a <strong>four-way teardown</strong> gracefully closes it. During the connection, TCP continuously monitors the network and adapts its sending rate.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-top" style="background:var(--tcp);"></div>
+      <div class="card-icon">🤝</div>
+      <h4>Connection-Oriented</h4>
+      <p>Requires a 3-way handshake before any data is exchanged. Both sides maintain state for the duration of the connection.</p>
+    </div>
+    <div class="card">
+      <div class="card-top" style="background:var(--green);"></div>
+      <div class="card-icon">✅</div>
+      <h4>Reliable Delivery</h4>
+      <p>Every byte is acknowledged. Lost segments are automatically retransmitted. No data is silently lost.</p>
+    </div>
+    <div class="card">
+      <div class="card-top" style="background:var(--yellow);"></div>
+      <div class="card-icon">📋</div>
+      <h4>Ordered Delivery</h4>
+      <p>Segments carry sequence numbers. The receiver reassembles them in the correct order, even if they arrive out of sequence.</p>
+    </div>
+    <div class="card">
+      <div class="card-top" style="background:var(--purple);"></div>
+      <div class="card-icon">↔️</div>
+      <h4>Full-Duplex</h4>
+      <p>Both sides can send and receive simultaneously on a single TCP connection. Data flows in both directions at the same time.</p>
+    </div>
+    <div class="card">
+      <div class="card-top" style="background:#f472b6;"></div>
+      <div class="card-icon">🌊</div>
+      <h4>Flow Control</h4>
+      <p>The receiver advertises a <em>receive window</em> to prevent the sender from overwhelming it with more data than it can buffer.</p>
+    </div>
+    <div class="card">
+      <div class="card-top" style="background:#06b6d4;"></div>
+      <div class="card-icon">🚦</div>
+      <h4>Congestion Control</h4>
+      <p>TCP monitors the network and slows down when congestion is detected, being fair to other flows sharing the path.</p>
+    </div>
+  </div>
+
+  <h3>TCP vs UDP — When to Use Which?</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>Feature</th><th style="color:var(--tcp-light)">TCP</th><th style="color:#fbbf24">UDP</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Connection</td><td style="color:var(--tcp-light)">Required (3-way handshake)</td><td style="color:#fbbf24">None</td></tr>
+      <tr><td>Reliability</td><td style="color:var(--tcp-light)">Guaranteed, retransmits</td><td style="color:#fbbf24">Best-effort only</td></tr>
+      <tr><td>Order</td><td style="color:var(--tcp-light)">Guaranteed in-order</td><td style="color:#fbbf24">Not guaranteed</td></tr>
+      <tr><td>Header Size</td><td style="color:var(--tcp-light)">20–60 bytes</td><td style="color:#fbbf24">8 bytes</td></tr>
+      <tr><td>Speed</td><td style="color:var(--tcp-light)">Slower (overhead)</td><td style="color:#fbbf24">Faster</td></tr>
+      <tr><td>Use Cases</td><td style="color:var(--tcp-light)">HTTP/S, SSH, FTP, email</td><td style="color:#fbbf24">DNS, VoIP, gaming, streaming</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== 02 SEGMENT STRUCTURE ========== -->
+<section id="segment" class="reveal">
+  <div class="sec-label">// 02 — Segment Structure</div>
+  <h2>TCP Segment Structure</h2>
+
+  <p>A TCP segment has a <strong>minimum 20-byte header</strong> (without options), followed by the payload. Every field plays a specific role in ensuring reliable, ordered, flow-controlled communication.</p>
+
+  <div class="seg-diagram">
+    <div class="bit-ruler">
+      <span>0</span><span>4</span><span>8</span><span>12</span><span>16</span><span>20</span><span>24</span><span>28</span><span>31</span>
+    </div>
+
+    <!-- Row 1: Source Port + Dest Port -->
+    <div class="seg-row">
+      <div class="sf sf-2 sf-sp"><span class="bits">bits 0–15</span>Source Port</div>
+      <div class="sf sf-2 sf-dp"><span class="bits">bits 16–31</span>Destination Port</div>
+    </div>
+    <!-- Row 2: Sequence Number -->
+    <div class="seg-row">
+      <div class="sf sf-4 sf-seq" style="flex:4"><span class="bits">bits 0–31 (32 bits)</span>Sequence Number</div>
+    </div>
+    <!-- Row 3: Acknowledgement Number -->
+    <div class="seg-row">
+      <div class="sf sf-4 sf-ack" style="flex:4"><span class="bits">bits 0–31 (32 bits)</span>Acknowledgement Number</div>
+    </div>
+    <!-- Row 4: Data Offset + Reserved + Flags + Window -->
+    <div class="seg-row">
+      <div class="sf sf-off" style="flex:0.5; min-width:60px;"><span class="bits">4b</span>Offset</div>
+      <div class="sf sf-res" style="flex:0.375;"><span class="bits">3b</span>Rsv</div>
+      <div class="sf sf-flg" style="flex:0.75;"><span class="bits">9b</span>Flags</div>
+      <div class="sf sf-win" style="flex:2;"><span class="bits">16 bits</span>Window Size</div>
+    </div>
+    <!-- Row 5: Checksum + Urgent -->
+    <div class="seg-row">
+      <div class="sf sf-chk sf-2"><span class="bits">16 bits</span>Checksum</div>
+      <div class="sf sf-urg sf-2"><span class="bits">16 bits</span>Urgent Pointer</div>
+    </div>
+    <!-- Row 6: Options -->
+    <div class="seg-row">
+      <div class="sf sf-opt" style="flex:4;"><span class="bits">0–320 bits (variable, padded to 32-bit boundary)</span>Options (e.g. MSS, SACK, Timestamps, Window Scaling)</div>
+    </div>
+    <!-- Row 7: Data -->
+    <div class="seg-row" style="border-bottom: 1px solid var(--border2);">
+      <div class="sf sf-dat" style="flex:4;"><span class="bits">variable</span>Application Data (Payload)</div>
+    </div>
+
+    <!-- Flags detail -->
+    <div style="margin-top:20px;">
+      <div style="font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:10px;">Control Flags (9 bits)</div>
+      <div class="flags-detail">
+        <span class="flag-chip" style="border-color:var(--tcp); color:var(--tcp-light); background:var(--tcp-dim);">SYN — Synchronize (connection setup)</span>
+        <span class="flag-chip" style="border-color:var(--red); color:#f87171; background:var(--red-dim);">FIN — Finish (connection teardown)</span>
+        <span class="flag-chip" style="border-color:var(--green); color:#34d399; background:var(--green-dim);">ACK — Acknowledgement valid</span>
+        <span class="flag-chip" style="border-color:var(--yellow); color:#fbbf24; background:var(--yellow-dim);">RST — Reset connection</span>
+        <span class="flag-chip" style="border-color:#06b6d4; color:#67e8f9; background:rgba(6,182,212,0.1);">PSH — Push data immediately</span>
+        <span class="flag-chip" style="border-color:#f472b6; color:#f472b6; background:rgba(244,114,182,0.1);">URG — Urgent data present</span>
+        <span class="flag-chip" style="border-color:var(--purple); color:#a78bfa; background:var(--purple-dim);">ECE — ECN Echo</span>
+        <span class="flag-chip" style="border-color:var(--purple); color:#a78bfa; background:var(--purple-dim);">CWR — Congestion Window Reduced</span>
+        <span class="flag-chip" style="border-color:var(--muted); color:var(--muted2); background:rgba(100,116,139,0.1);">NS — Nonce Sum</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Key Fields Explained</h3>
+  <table class="data-table">
+    <thead><tr><th>Field</th><th>Size</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td style="color:var(--tcp-light)">Source / Dest Port</td><td>16 bits each</td><td>Identifies the sending and receiving application sockets (used for demultiplexing)</td></tr>
+      <tr><td style="color:#fbbf24">Sequence Number</td><td>32 bits</td><td>Byte offset of the first byte in this segment's payload from the start of the data stream. Enables ordering and reliability.</td></tr>
+      <tr><td style="color:#f87171">Acknowledgement Number</td><td>32 bits</td><td>When ACK flag is set: the next byte the receiver expects. Cumulative — acknowledges all bytes up to this number.</td></tr>
+      <tr><td style="color:#a78bfa">Data Offset (Header Length)</td><td>4 bits</td><td>Size of the TCP header in 32-bit words. Minimum 5 (= 20 bytes), max 15 (= 60 bytes with options).</td></tr>
+      <tr><td style="color:#f472b6">Flags</td><td>9 bits</td><td>Control bits: SYN, ACK, FIN, RST, PSH, URG, ECE, CWR, NS. Multiple can be set simultaneously.</td></tr>
+      <tr><td style="color:#67e8f9">Window Size</td><td>16 bits</td><td>Receive window — how many bytes the receiver is willing to accept. Core of TCP flow control.</td></tr>
+      <tr><td style="color:#34d399">Checksum</td><td>16 bits</td><td>1's complement checksum over pseudo-header + TCP header + data. <strong>Mandatory</strong> in TCP (unlike UDP).</td></tr>
+      <tr><td style="color:#fbbf24">Urgent Pointer</td><td>16 bits</td><td>Valid only when URG flag is set. Points to the last byte of urgent data. Rarely used in modern TCP.</td></tr>
+      <tr><td style="color:var(--muted2)">Options</td><td>0–40 bytes</td><td>MSS negotiation, SACK (selective ACK), timestamps for RTT, window scaling for large bandwidth-delay products.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== 03 RTT & TIMEOUT ========== -->
+<section id="rtt" class="reveal">
+  <div class="sec-label">// 03 — RTT Estimation & Timeout</div>
+  <h2>RTT Estimation & Timeout</h2>
+
+  <p>To know when to <strong>retransmit</strong> a lost segment, TCP needs a timeout interval. Set it too short: unnecessary retransmissions. Too long: slow recovery from loss. TCP dynamically estimates the <strong>Round-Trip Time (RTT)</strong> and uses it to compute the timeout.</p>
+
+  <h3>Measuring Sample RTT</h3>
+  <p>For each segment sent (not retransmitted), TCP measures <strong>SampleRTT</strong> — the time from sending the segment to receiving its ACK. This varies due to network conditions, so TCP computes a smoothed average.</p>
+
+  <div class="formula-box">
+    <div class="f-title">Step 1 — Exponential Weighted Moving Average (EWMA)</div>
+    <div class="f-eq">EstimatedRTT = (1 − α) × EstimatedRTT + α × SampleRTT</div>
+    <div class="f-note">
+      α = 0.125 (recommended in RFC 6298)<br>
+      EstimatedRTT puts more weight on recent samples while smoothing out fluctuations.<br>
+      Gives ~87.5% weight to the old estimate and ~12.5% to the new sample.
+    </div>
+  </div>
+
+  <div class="formula-box" style="border-left-color: var(--yellow);">
+    <div class="f-title">Step 2 — Deviation (Variability Measure)</div>
+    <div class="f-eq">DevRTT = (1 − β) × DevRTT + β × |SampleRTT − EstimatedRTT|</div>
+    <div class="f-note">
+      β = 0.25 (recommended)<br>
+      DevRTT tracks how much SampleRTT deviates from the estimate — a measure of variability/jitter.
+    </div>
+  </div>
+
+  <div class="formula-box" style="border-left-color: var(--red);">
+    <div class="f-title">Step 3 — Timeout Interval</div>
+    <div class="f-eq">TimeoutInterval = EstimatedRTT + 4 × DevRTT</div>
+    <div class="f-note">
+      A margin of 4 × DevRTT is added to handle variability.<br>
+      When a timeout occurs, TimeoutInterval is <strong>doubled</strong> (exponential backoff) to avoid flooding an already-congested network.<br>
+      It is reset to the formula value when a valid ACK is received.
+    </div>
+  </div>
+
+  <!-- Interactive RTT Simulation -->
+  <div class="sim-box reveal">
+    <div class="sim-title">RTT Estimation Simulator</div>
+    <p style="font-size:13px; margin-bottom:16px;">Click "New Sample" to simulate incoming SampleRTT measurements and watch how EstimatedRTT and TimeoutInterval evolve using the EWMA formulas.</p>
+
+    <div class="sim-controls">
+      <button class="sim-btn btn-blue" onclick="addRttSample()">+ New RTT Sample</button>
+      <button class="sim-btn btn-red" onclick="addRttSample(true)">+ High Latency Spike</button>
+      <button class="sim-btn btn-gray" onclick="resetRtt()">↺ Reset</button>
+    </div>
+
+    <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;">
+      <div style="font-family:var(--mono); font-size:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">SampleRTT</div>
+        <div id="rtt-sample" style="color:var(--tcp-light); font-size:16px; font-weight:700;">—</div>
+      </div>
+      <div style="font-family:var(--mono); font-size:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">EstimatedRTT</div>
+        <div id="rtt-est" style="color:#fbbf24; font-size:16px; font-weight:700;">100 ms</div>
+      </div>
+      <div style="font-family:var(--mono); font-size:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">DevRTT</div>
+        <div id="rtt-dev" style="color:#a78bfa; font-size:16px; font-weight:700;">5 ms</div>
+      </div>
+      <div style="font-family:var(--mono); font-size:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">TimeoutInterval</div>
+        <div id="rtt-timeout" style="color:#f87171; font-size:16px; font-weight:700;">120 ms</div>
+      </div>
+    </div>
+
+    <div id="rtt-chart" class="rtt-chart">
+      <div style="color:var(--muted); font-size:11px; font-family:var(--mono);">Add samples to see the chart...</div>
+    </div>
+    <div style="display:flex; gap:16px; margin-top:10px; font-family:var(--mono); font-size:11px; flex-wrap:wrap;">
+      <span><span style="color:var(--tcp-light)">■</span> SampleRTT</span>
+      <span><span style="color:#fbbf24">■</span> EstimatedRTT</span>
+      <span><span style="color:#f87171">■</span> TimeoutInterval</span>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 04 RELIABLE DATA TRANSFER ========== -->
+<section id="reliable" class="reveal">
+  <div class="sec-label">// 04 — Reliable Data Transfer</div>
+  <h2>Reliable Data Transfer</h2>
+
+  <p>TCP provides reliable, in-order data delivery on top of IP's unreliable best-effort service. It does this through <strong>sequence numbers</strong>, <strong>acknowledgements (ACKs)</strong>, and <strong>retransmission</strong>.</p>
+
+  <h3>Sequence Numbers & ACKs</h3>
+  <p>Every byte in the data stream has a <strong>sequence number</strong>. The initial sequence number (ISN) is chosen randomly during the handshake. The ACK number tells the sender the next expected byte — implicitly acknowledging all bytes before it (cumulative ACKs).</p>
+
+  <div class="info-box" style="border-left-color: var(--tcp);">
+    <p><strong>Example:</strong> If the ISN = 1000 and segment carries 500 bytes, the sequence number is 1000, data spans bytes 1000–1499. The ACK from the receiver will be <strong>1500</strong> (next expected byte).</p>
+  </div>
+
+  <h3>Retransmission Mechanisms</h3>
+  <table class="data-table" style="margin-top:14px;">
+    <thead><tr><th>Mechanism</th><th>Trigger</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td style="color:#f87171">Timeout Retransmit</td><td>Timer expires before ACK arrives</td><td>Retransmit the unacknowledged segment. Double the timeout (exponential backoff).</td></tr>
+      <tr><td style="color:#fbbf24">Fast Retransmit</td><td>3 duplicate ACKs received</td><td>Immediately retransmit the missing segment — don't wait for timeout. Faster recovery.</td></tr>
+      <tr><td style="color:#a78bfa">Go-Back-N (GBN)</td><td>Loss detected</td><td>Retransmit segment N and all subsequent segments (even if received). Simple but wasteful.</td></tr>
+      <tr><td style="color:var(--tcp-light)">Selective Repeat (SR)</td><td>Loss detected + SACK option</td><td>Only retransmit specifically lost segments. More efficient. Requires SACK TCP option.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fast Retransmit</h3>
+  <p>When the receiver gets an out-of-order segment (e.g., segment 3 arrives after segment 1, with segment 2 missing), it sends a <strong>duplicate ACK</strong> for the last in-order segment. When the sender receives <strong>3 duplicate ACKs</strong>, it retransmits the missing segment immediately — well before the timeout fires.</p>
+
+  <div class="formula-box" style="border-left-color: var(--yellow);">
+    <div class="f-title">Fast Retransmit Rule</div>
+    <div class="f-eq">If 3 duplicate ACKs received → retransmit segment with seq = ACK#</div>
+    <div class="f-note">
+      3 duplicate ACKs = 4 ACKs for the same sequence number<br>
+      This is a strong signal that a specific segment is missing, not just delayed.
+    </div>
+  </div>
+
+  <!-- Sliding window sim teaser -->
+  <div class="info-box" style="border-left-color: var(--green);">
+    <p>TCP uses a <strong>pipeline</strong> — it doesn't send one segment and wait for its ACK. Instead it keeps multiple "in-flight" segments within the <em>window size</em>. See the interactive simulation in <a href="#simulation" style="color:var(--tcp-light)">Section 07</a>.</p>
+  </div>
+</section>
+
+<!-- ========== 05 FLOW CONTROL ========== -->
+<section id="flowctrl" class="reveal">
+  <div class="sec-label">// 05 — Flow Control</div>
+  <h2>Flow Control</h2>
+
+  <p>Flow control prevents the sender from <strong>overwhelming the receiver's buffer</strong>. Each side maintains a receive buffer. If the sender sends faster than the application reads, the buffer fills up and data is dropped.</p>
+
+  <p>TCP solves this with the <strong>receive window (rwnd)</strong> field in the segment header. The receiver advertises how much free buffer space it has. The sender never has more than <strong>rwnd</strong> bytes of unacknowledged data in flight.</p>
+
+  <div class="formula-box">
+    <div class="f-title">Flow Control Constraint</div>
+    <div class="f-eq">LastByteSent − LastByteAcked ≤ rwnd</div>
+    <div class="f-note">
+      rwnd = RcvBuffer − (LastByteRcvd − LastByteRead)<br>
+      rwnd is advertised in every ACK segment sent by the receiver.<br>
+      When rwnd = 0, the sender must stop — except it sends 1-byte probes to detect when buffer frees up.
+    </div>
+  </div>
+
+  <h3>The rwnd = 0 Problem</h3>
+  <p>If rwnd = 0, the sender stops. But when the receiver's buffer frees up, it sends no new ACK unless it has data to send. TCP solves this with <strong>zero-window probes</strong> — the sender periodically sends 1-byte segments to provoke an ACK with the updated rwnd.</p>
+
+  <!-- Flow Control Simulation -->
+  <div class="sim-box reveal">
+    <div class="sim-title">Receive Buffer Simulation</div>
+    <p style="font-size:13px; margin-bottom:16px;">Simulate data arriving into the receiver's buffer and the application consuming it. Watch the rwnd shrink and grow.</p>
+
+    <div class="sim-controls">
+      <button class="sim-btn btn-blue" onclick="fcSend()">📨 Receive Data (fill buffer)</button>
+      <button class="sim-btn btn-green" onclick="fcRead()">📖 App Reads Data</button>
+      <button class="sim-btn btn-gray" onclick="fcReset()">↺ Reset</button>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; font-family:var(--mono); font-size:12px;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">Buffer Size</div>
+        <div style="color:var(--text); font-weight:700;">16 slots</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">Used</div>
+        <div id="fc-used" style="color:#f87171; font-weight:700;">0</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">Free (rwnd)</div>
+        <div id="fc-free" style="color:#4ade80; font-weight:700;">16</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 16px;">
+        <div style="color:var(--muted); font-size:10px; margin-bottom:4px;">Sender Status</div>
+        <div id="fc-status" style="color:var(--tcp-light); font-weight:700;">SENDING</div>
+      </div>
+    </div>
+
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:8px;">Receive Buffer (16 slots):</div>
+    <div class="buffer-vis" id="fc-buffer"></div>
+
+    <div class="status-log" id="fc-log">
+      <div style="color:var(--muted)">Simulation ready...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 06 CONNECTION MANAGEMENT ========== -->
+<section id="connmgmt" class="reveal">
+  <div class="sec-label">// 06 — Connection Management</div>
+  <h2>TCP Connection Management</h2>
+
+  <p>TCP connections are established with a <strong>3-way handshake</strong> and closed with a <strong>4-way (or 3-way) teardown</strong>. Both mechanisms involve exchanging control segments with specific flag combinations.</p>
+
+  <h3>Three-Way Handshake (Connection Setup)</h3>
+  <p>The 3-way handshake synchronizes sequence numbers on both sides and confirms bidirectional communication is possible before any data is sent.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Step</th><th>Who</th><th>Segment</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr>
+        <td style="color:var(--tcp-light)">1 — SYN</td>
+        <td>Client → Server</td>
+        <td><code style="color:#fbbf24">SYN, seq=x</code></td>
+        <td>Client picks ISN x, sets SYN flag. Asks server to synchronize.</td>
+      </tr>
+      <tr>
+        <td style="color:var(--green)">2 — SYN-ACK</td>
+        <td>Server → Client</td>
+        <td><code style="color:#fbbf24">SYN+ACK, seq=y, ack=x+1</code></td>
+        <td>Server picks ISN y, acknowledges client's SYN (ack=x+1), sends its own SYN.</td>
+      </tr>
+      <tr>
+        <td style="color:#a78bfa">3 — ACK</td>
+        <td>Client → Server</td>
+        <td><code style="color:#fbbf24">ACK, seq=x+1, ack=y+1</code></td>
+        <td>Client acknowledges server's SYN. Connection is established. Data can now flow.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="info-box" style="border-left-color:var(--tcp); margin-top:20px;">
+    <p><strong>Why 3-way?</strong> Two handshakes only confirm one direction. The third step (ACK from client) confirms the server's SYN was received — ensuring both sides know the bidirectional channel works and both ISNs are synchronized.</p>
+  </div>
+
+  <h3>Four-Way Teardown (Connection Close)</h3>
+  <p>TCP uses a <strong>half-close</strong> mechanism — each side can close its sending direction independently. This requires 4 segments total, though they can be merged into 3.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Step</th><th>Who</th><th>Segment</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td style="color:#f87171">1 — FIN</td><td>Client → Server</td><td><code>FIN, seq=x</code></td><td>Client is done sending. "I have no more data."</td></tr>
+      <tr><td style="color:var(--green)">2 — ACK</td><td>Server → Client</td><td><code>ACK, ack=x+1</code></td><td>Server acknowledges. It may still have data to send.</td></tr>
+      <tr><td style="color:#f87171">3 — FIN</td><td>Server → Client</td><td><code>FIN, seq=y</code></td><td>Server is also done sending now.</td></tr>
+      <tr><td style="color:var(--green)">4 — ACK</td><td>Client → Server</td><td><code>ACK, ack=y+1</code></td><td>Client acknowledges. After 2×MSL wait, connection is fully closed.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box" style="border-left-color:var(--yellow); margin-top:20px;">
+    <p><strong>TIME_WAIT State:</strong> After sending the final ACK, the client waits <strong>2 × MSL (Maximum Segment Lifetime)</strong> — typically 60–120 seconds — before truly closing. This ensures: (1) the final ACK reached the server, and (2) stale segments from the old connection can't confuse a new one.</p>
+  </div>
+
+  <h3>TCP State Machine</h3>
+  <p>Each TCP endpoint transitions through a series of states during connection setup and teardown. Key states for the client:</p>
+
+  <div style="overflow-x:auto; margin-top:16px;">
+    <table class="data-table">
+      <thead><tr><th>State</th><th>Description</th><th>Next State(s)</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--muted2)">CLOSED</td><td>No connection. Initial and final state.</td><td>LISTEN, SYN_SENT</td></tr>
+        <tr><td style="color:var(--tcp-light)">LISTEN</td><td>Server waiting for incoming SYN.</td><td>SYN_RCVD</td></tr>
+        <tr><td style="color:var(--tcp-light)">SYN_SENT</td><td>Client sent SYN, waiting for SYN-ACK.</td><td>ESTABLISHED, CLOSED</td></tr>
+        <tr><td style="color:var(--tcp-light)">SYN_RCVD</td><td>Server received SYN, sent SYN-ACK, waiting for ACK.</td><td>ESTABLISHED</td></tr>
+        <tr><td style="color:var(--green)">ESTABLISHED</td><td>Connection open. Data flows freely.</td><td>FIN_WAIT_1, CLOSE_WAIT</td></tr>
+        <tr><td style="color:#fbbf24">FIN_WAIT_1</td><td>Sent FIN, waiting for ACK.</td><td>FIN_WAIT_2, CLOSING</td></tr>
+        <tr><td style="color:#fbbf24">FIN_WAIT_2</td><td>Received ACK of FIN, waiting for peer's FIN.</td><td>TIME_WAIT</td></tr>
+        <tr><td style="color:#f87171">TIME_WAIT</td><td>Both FINs exchanged. Waiting 2×MSL before closing.</td><td>CLOSED</td></tr>
+        <tr><td style="color:#f87171">CLOSE_WAIT</td><td>Received FIN, waiting for app to close.</td><td>LAST_ACK</td></tr>
+        <tr><td style="color:#f87171">LAST_ACK</td><td>Sent own FIN, waiting for final ACK.</td><td>CLOSED</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ========== 07 SIMULATION ========== -->
+<section id="simulation" class="reveal">
+  <div class="sec-label">// 07 — Interactive Simulations</div>
+  <h2>Live Simulations</h2>
+
+  <p>Explore TCP concepts interactively. Each simulator demonstrates a specific TCP mechanism.</p>
+
+  <!-- SIM TABS -->
+  <div style="display:flex; gap:8px; margin:24px 0 0; flex-wrap:wrap;">
+    <button class="sim-btn btn-blue active-tab" id="tab-btn-hs"  onclick="showSim('hs')">🤝 3-Way Handshake</button>
+    <button class="sim-btn btn-gray" id="tab-btn-sw" onclick="showSim('sw')">📦 Sliding Window</button>
+    <button class="sim-btn btn-gray" id="tab-btn-fc" onclick="showSim('fc2')">🌊 Flow Control</button>
+    <button class="sim-btn btn-gray" id="tab-btn-td" onclick="showSim('td')">👋 TCP Teardown</button>
+  </div>
+
+  <!-- HS SIM -->
+  <div class="sim-box" id="sim-hs">
+    <div class="sim-title">Three-Way Handshake Simulation</div>
+    <div class="sim-controls">
+      <button class="sim-btn btn-blue" onclick="runHandshake()">▶ Run Handshake</button>
+      <button class="sim-btn btn-gray" onclick="resetHandshake()">↺ Reset</button>
+    </div>
+
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:24px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; font-family:var(--mono); font-size:12px;">
+
+        <!-- Client column -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0; padding:0 8px;">
+          <div style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:10px 16px; text-align:center; width:100%; margin-bottom:16px;">
+            <div style="font-size:1.5rem;">💻</div>
+            <div style="font-weight:700;">CLIENT</div>
+            <div style="color:var(--muted); font-size:10px;">192.168.1.10</div>
+            <div id="hs-client-state" style="font-size:10px; margin-top:6px; padding:2px 8px; border-radius:4px; background:var(--surface2); color:var(--muted); display:inline-block;">CLOSED</div>
+          </div>
+          <div style="width:2px; background:var(--border2); flex:1; min-height:260px;"></div>
+        </div>
+
+        <!-- Channel column -->
+        <div id="hs-channel" style="display:flex; flex-direction:column; justify-content:flex-start; padding-top:80px; gap:28px; align-items:center; position:relative; min-height:360px;">
+          <!-- Messages injected by JS -->
+        </div>
+
+        <!-- Server column -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0; padding:0 8px;">
+          <div style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:10px 16px; text-align:center; width:100%; margin-bottom:16px;">
+            <div style="font-size:1.5rem;">🖥️</div>
+            <div style="font-weight:700;">SERVER</div>
+            <div style="color:var(--muted); font-size:10px;">93.184.216.34</div>
+            <div id="hs-server-state" style="font-size:10px; margin-top:6px; padding:2px 8px; border-radius:4px; background:var(--surface2); color:var(--muted); display:inline-block;">LISTEN</div>
+          </div>
+          <div style="width:2px; background:var(--border2); flex:1; min-height:260px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="status-log" id="hs-log"><div style="color:var(--muted)">Click "Run Handshake" to begin.</div></div>
+  </div>
+
+  <!-- SLIDING WINDOW SIM -->
+  <div class="sim-box" id="sim-sw" style="display:none;">
+    <div class="sim-title">Sliding Window — Reliable Data Transfer</div>
+    <p style="font-size:13px; margin-bottom:16px;">Segments are sent within a window. Acknowledged segments slide the window forward. Simulate normal delivery, loss, and fast retransmit.</p>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+      <span style="font-family:var(--mono); font-size:12px; color:var(--muted);">Window Size:</span>
+      <input type="range" id="sw-wnd-size" min="3" max="8" value="5" style="accent-color:var(--tcp);">
+      <span id="sw-wnd-label" style="font-family:var(--mono); font-size:12px; color:var(--tcp-light); font-weight:700;">5</span>
+    </div>
+
+    <div class="sw-legend">
+      <div class="sw-leg-item"><div class="sw-leg-dot" style="background:var(--green-dim); border-color:var(--green);"></div><span style="color:#34d399">ACKed</span></div>
+      <div class="sw-leg-item"><div class="sw-leg-dot" style="background:var(--yellow-dim); border-color:var(--yellow);"></div><span style="color:#fbbf24">In Flight</span></div>
+      <div class="sw-leg-item"><div class="sw-leg-dot" style="background:var(--tcp-dim); border-color:var(--tcp);"></div><span style="color:var(--tcp-light)">In Window</span></div>
+      <div class="sw-leg-item"><div class="sw-leg-dot" style="background:var(--surface); border-color:var(--border);"></div><span style="color:var(--muted)">Not Sent</span></div>
+    </div>
+
+    <div class="sw-vis" id="sw-vis"></div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0; font-family:var(--mono); font-size:12px;">
+      <span>Base: <strong id="sw-base" style="color:var(--green)">1</strong></span>
+      <span>NextSeq: <strong id="sw-next" style="color:var(--tcp-light)">1</strong></span>
+      <span>Window: <strong id="sw-wsize" style="color:#fbbf24">5</strong></span>
+    </div>
+
+    <div class="sim-controls">
+      <button class="sim-btn btn-blue" onclick="swSend()">▶ Send Next</button>
+      <button class="sim-btn btn-green" onclick="swAck()">✓ ACK Received</button>
+      <button class="sim-btn btn-red" onclick="swLose()">✕ Simulate Loss + Fast Retransmit</button>
+      <button class="sim-btn btn-gray" onclick="swReset()">↺ Reset</button>
+    </div>
+
+    <div class="status-log" id="sw-log"><div style="color:var(--muted)">Simulation ready. Send segments to begin.</div></div>
+  </div>
+
+  <!-- FLOW CONTROL SIM 2 (tab version) -->
+  <div class="sim-box" id="sim-fc2" style="display:none;">
+    <div class="sim-title">Flow Control — Receive Window</div>
+    <p style="font-size:13px; margin-bottom:16px;">The receiver advertises rwnd. The sender cannot have more than rwnd bytes unacknowledged. Watch what happens when the buffer fills up.</p>
+
+    <div class="sim-controls">
+      <button class="sim-btn btn-blue" onclick="fc2Send()">📨 Receive 2 Segments</button>
+      <button class="sim-btn btn-green" onclick="fc2Read()">📖 App Reads 2 Segments</button>
+      <button class="sim-btn btn-gray" onclick="fc2Reset()">↺ Reset</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px;">
+      <!-- Sender side -->
+      <div>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:8px; letter-spacing:1px; text-transform:uppercase;">Sender</div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; font-family:var(--mono); font-size:12px;">
+          <div style="margin-bottom:10px;">Advertised rwnd: <span id="fc2-rwnd" style="color:var(--tcp-light); font-weight:700;">10 KB</span></div>
+          <div style="margin-bottom:10px;">Bytes In-Flight: <span id="fc2-inflight" style="color:#f87171; font-weight:700;">0 KB</span></div>
+          <div>Status: <span id="fc2-sender-status" style="color:#34d399; font-weight:700;">ACTIVE</span></div>
+        </div>
+      </div>
+      <!-- Receiver side -->
+      <div>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:8px; letter-spacing:1px; text-transform:uppercase;">Receiver Buffer (10 KB)</div>
+        <div id="fc2-buffer" style="display:flex; gap:3px; flex-wrap:wrap;"></div>
+        <div style="font-family:var(--mono); font-size:11px; margin-top:8px;">
+          Used: <span id="fc2-used" style="color:#f87171; font-weight:700;">0 KB</span> /
+          Free: <span id="fc2-free" style="color:#34d399; font-weight:700;">10 KB</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-log" id="fc2-log"><div style="color:var(--muted)">Simulation ready...</div></div>
+  </div>
+
+  <!-- TEARDOWN SIM -->
+  <div class="sim-box" id="sim-td" style="display:none;">
+    <div class="sim-title">TCP 4-Way Teardown Simulation</div>
+    <div class="sim-controls">
+      <button class="sim-btn btn-red" onclick="runTeardown()">▶ Run Teardown</button>
+      <button class="sim-btn btn-gray" onclick="resetTeardown()">↺ Reset</button>
+    </div>
+
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:24px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; font-family:var(--mono); font-size:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; padding:0 8px;">
+          <div style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:10px 16px; text-align:center; width:100%; margin-bottom:16px;">
+            <div style="font-size:1.5rem;">💻</div>
+            <div style="font-weight:700;">CLIENT</div>
+            <div id="td-client-state" style="font-size:10px; margin-top:6px; padding:2px 8px; border-radius:4px; background:var(--green-dim); color:#34d399; display:inline-block;">ESTABLISHED</div>
+          </div>
+          <div style="width:2px; background:var(--border2); flex:1; min-height:260px;"></div>
+        </div>
+
+        <div id="td-channel" style="display:flex; flex-direction:column; justify-content:flex-start; padding-top:80px; gap:28px; align-items:center; position:relative; min-height:360px;"></div>
+
+        <div style="display:flex; flex-direction:column; align-items:center; padding:0 8px;">
+          <div style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:10px 16px; text-align:center; width:100%; margin-bottom:16px;">
+            <div style="font-size:1.5rem;">🖥️</div>
+            <div style="font-weight:700;">SERVER</div>
+            <div id="td-server-state" style="font-size:10px; margin-top:6px; padding:2px 8px; border-radius:4px; background:var(--green-dim); color:#34d399; display:inline-block;">ESTABLISHED</div>
+          </div>
+          <div style="width:2px; background:var(--border2); flex:1; min-height:260px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="status-log" id="td-log"><div style="color:var(--muted)">Click "Run Teardown" to begin.</div></div>
+  </div>
+
+</section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    TCP — Transmission Control Protocol &nbsp;·&nbsp; Transport Layer &nbsp;·&nbsp; RFC 793 &nbsp;·&nbsp; Computer Networks
+  </div>
+</footer>
+
+<script>
+// ===== SCROLL REVEAL =====
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
+}, { threshold: 0.07 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ===== RTT SIMULATION =====
+let rttState = { estRTT: 100, devRTT: 5, samples: [] };
+
+function rttTimeout() {
+  return Math.round(rttState.estRTT + 4 * rttState.devRTT);
+}
+
+function addRttSample(spike) {
+  const base = spike ? (200 + Math.random() * 200) : (60 + Math.random() * 120);
+  const sample = Math.round(base);
+  const alpha = 0.125, beta = 0.25;
+  rttState.estRTT = (1 - alpha) * rttState.estRTT + alpha * sample;
+  rttState.devRTT = (1 - beta) * rttState.devRTT + beta * Math.abs(sample - rttState.estRTT);
+  rttState.samples.push({ sample, estRTT: rttState.estRTT, devRTT: rttState.devRTT, timeout: rttTimeout() });
+
+  document.getElementById('rtt-sample').textContent = sample + ' ms';
+  document.getElementById('rtt-est').textContent = Math.round(rttState.estRTT) + ' ms';
+  document.getElementById('rtt-dev').textContent = Math.round(rttState.devRTT) + ' ms';
+  document.getElementById('rtt-timeout').textContent = rttTimeout() + ' ms';
+
+  renderRttChart();
+}
+
+function renderRttChart() {
+  const chart = document.getElementById('rtt-chart');
+  const maxVal = Math.max(...rttState.samples.map(s => s.timeout), 1);
+  const scale = 280 / maxVal;
+  chart.innerHTML = rttState.samples.map((s, i) => `
+    <div class="rtt-row">
+      <span style="color:var(--muted); width:24px; font-size:11px;">${i+1}</span>
+      <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div class="rtt-sample-bar" style="width:${Math.max(s.sample*scale,10)}px;"></div>
+          <span style="color:var(--tcp-light); font-size:11px;">${Math.round(s.sample)}ms</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div class="rtt-srtt-bar" style="width:${Math.max(s.estRTT*scale,10)}px;"></div>
+          <span style="color:#fbbf24; font-size:11px;">${Math.round(s.estRTT)}ms</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div class="rtt-to-bar" style="width:${Math.max(s.timeout*scale,10)}px;"></div>
+          <span style="color:#f87171; font-size:11px;">${Math.round(s.timeout)}ms</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function resetRtt() {
+  rttState = { estRTT: 100, devRTT: 5, samples: [] };
+  document.getElementById('rtt-sample').textContent = '—';
+  document.getElementById('rtt-est').textContent = '100 ms';
+  document.getElementById('rtt-dev').textContent = '5 ms';
+  document.getElementById('rtt-timeout').textContent = '120 ms';
+  document.getElementById('rtt-chart').innerHTML = '<div style="color:var(--muted); font-size:11px; font-family:var(--mono);">Add samples to see the chart...</div>';
+}
+
+// ===== FLOW CONTROL (inline section) =====
+let fcState = { buf: 0, max: 16 };
+
+function initFcBuffer() {
+  const el = document.getElementById('fc-buffer');
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < fcState.max; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'buf-slot';
+    slot.id = 'fc-slot-' + i;
+    el.appendChild(slot);
+  }
+}
+
+function updateFcBuffer() {
+  for (let i = 0; i < fcState.max; i++) {
+    const slot = document.getElementById('fc-slot-' + i);
+    if (!slot) continue;
+    slot.className = 'buf-slot';
+    if (i < fcState.buf) {
+      slot.classList.add(fcState.buf >= fcState.max ? 'full' : 'filled');
+      slot.textContent = i + 1;
+    } else {
+      slot.textContent = '';
+    }
+  }
+  document.getElementById('fc-used').textContent = fcState.buf;
+  document.getElementById('fc-free').textContent = fcState.max - fcState.buf;
+  const status = document.getElementById('fc-status');
+  if (fcState.buf >= fcState.max) {
+    status.textContent = 'BLOCKED (rwnd=0)';
+    status.style.color = '#f87171';
+  } else {
+    status.textContent = 'SENDING';
+    status.style.color = 'var(--tcp-light)';
+  }
+}
+
+function fcLog(msg, col) {
+  const log = document.getElementById('fc-log');
+  const d = document.createElement('div');
+  d.innerHTML = `<span style="color:${col||'#94a3b8'}">${msg}</span>`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function fcSend() {
+  const fill = Math.min(3, fcState.max - fcState.buf);
+  if (fill <= 0) { fcLog('⚠ rwnd=0 — sender BLOCKED. App must read data first.', '#f87171'); return; }
+  fcState.buf += fill;
+  updateFcBuffer();
+  fcLog(`📨 Received ${fill} segments → Buffer: ${fcState.buf}/${fcState.max} (rwnd=${fcState.max - fcState.buf})`, 'var(--tcp-light)');
+}
+
+function fcRead() {
+  if (fcState.buf === 0) { fcLog('Buffer empty — nothing to read.', 'var(--muted)'); return; }
+  const read = Math.min(4, fcState.buf);
+  fcState.buf -= read;
+  updateFcBuffer();
+  fcLog(`📖 App read ${read} segments → Buffer: ${fcState.buf}/${fcState.max} (rwnd=${fcState.max - fcState.buf})`, '#34d399');
+}
+
+function fcReset() {
+  fcState.buf = 0;
+  updateFcBuffer();
+  document.getElementById('fc-log').innerHTML = '<div style="color:var(--muted)">Reset.</div>';
+}
+
+// ===== SIM TABS =====
+function showSim(name) {
+  ['hs','sw','fc2','td'].forEach(n => {
+    document.getElementById('sim-' + n).style.display = n === name ? 'block' : 'none';
+    const btn = document.getElementById('tab-btn-' + n);
+    if (btn) { btn.className = n === name ? 'sim-btn btn-blue active-tab' : 'sim-btn btn-gray'; }
+  });
+}
+
+// ===== HANDSHAKE SIM =====
+let hsRunning = false;
+function runHandshake() {
+  if (hsRunning) return;
+  hsRunning = true;
+  const ch = document.getElementById('hs-channel');
+  ch.innerHTML = '';
+  const log = document.getElementById('hs-log');
+  log.innerHTML = '';
+
+  const steps = [
+    { delay: 300,  dir: 'right', label: 'SYN  seq=1000', color: 'var(--tcp)', clientState: 'SYN_SENT', serverState: 'LISTEN', logMsg: '▶ Client sends SYN (seq=1000) — wants to connect', logColor: 'var(--tcp-light)' },
+    { delay: 1200, dir: 'left',  label: 'SYN-ACK  seq=5000  ack=1001', color: 'var(--green)', clientState: 'SYN_SENT', serverState: 'SYN_RCVD', logMsg: '◀ Server replies SYN-ACK (seq=5000, ack=1001) — "I agree, synchronizing"', logColor: '#34d399' },
+    { delay: 2100, dir: 'right', label: 'ACK  ack=5001', color: '#a78bfa', clientState: 'ESTABLISHED', serverState: 'ESTABLISHED', logMsg: '▶ Client sends ACK (ack=5001) — connection established!', logColor: '#a78bfa' },
+  ];
+
+  steps.forEach(step => {
+    setTimeout(() => {
+      // Update states
+      const cs = document.getElementById('hs-client-state');
+      const ss = document.getElementById('hs-server-state');
+      cs.textContent = step.clientState;
+      ss.textContent = step.serverState;
+      cs.style.background = step.clientState === 'ESTABLISHED' ? 'var(--green-dim)' : 'var(--tcp-dim)';
+      cs.style.color = step.clientState === 'ESTABLISHED' ? '#34d399' : 'var(--tcp-light)';
+      ss.style.background = step.serverState === 'ESTABLISHED' ? 'var(--green-dim)' : (step.serverState === 'LISTEN' ? 'rgba(100,116,139,0.1)' : 'var(--tcp-dim)');
+      ss.style.color = step.serverState === 'ESTABLISHED' ? '#34d399' : (step.serverState === 'LISTEN' ? 'var(--muted)' : 'var(--tcp-light)');
+
+      // Add arrow to channel
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; width:100%; position:relative; animation: fadeInRow 0.4s ease;';
+
+      const arrow = document.createElement('div');
+      arrow.style.cssText = `flex:1; height:2px; background:${step.color}; position:relative;`;
+
+      const tip = document.createElement('div');
+      if (step.dir === 'right') {
+        tip.style.cssText = `position:absolute; right:-1px; top:-5px; border:6px solid transparent; border-left-color:${step.color};`;
+      } else {
+        tip.style.cssText = `position:absolute; left:-1px; top:-5px; border:6px solid transparent; border-right-color:${step.color};`;
+      }
+      arrow.appendChild(tip);
+
+      const lbl = document.createElement('div');
+      lbl.style.cssText = `position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:10px; padding:2px 8px; border-radius:4px; background:${step.color}22; color:${step.color}; white-space:nowrap; font-family:var(--mono); border:1px solid ${step.color}44;`;
+      lbl.textContent = step.label;
+      arrow.appendChild(lbl);
+
+      row.appendChild(arrow);
+      ch.appendChild(row);
+
+      // Log
+      const d = document.createElement('div');
+      d.innerHTML = `<span style="color:${step.logColor}">${step.logMsg}</span>`;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+
+      if (step.clientState === 'ESTABLISHED') {
+        setTimeout(() => {
+          const d2 = document.createElement('div');
+          d2.innerHTML = '<span style="color:#34d399">✅ Connection ESTABLISHED — data can now flow in both directions.</span>';
+          log.appendChild(d2);
+          hsRunning = false;
+        }, 600);
+      }
+    }, step.delay);
+  });
+}
+
+function resetHandshake() {
+  hsRunning = false;
+  document.getElementById('hs-channel').innerHTML = '';
+  document.getElementById('hs-log').innerHTML = '<div style="color:var(--muted)">Click "Run Handshake" to begin.</div>';
+  document.getElementById('hs-client-state').textContent = 'CLOSED';
+  document.getElementById('hs-client-state').style.background = 'var(--surface2)';
+  document.getElementById('hs-client-state').style.color = 'var(--muted)';
+  document.getElementById('hs-server-state').textContent = 'LISTEN';
+  document.getElementById('hs-server-state').style.background = 'var(--surface2)';
+  document.getElementById('hs-server-state').style.color = 'var(--muted)';
+}
+
+// ===== SLIDING WINDOW =====
+let swState = { total: 16, base: 0, nextSeq: 0, wnd: 5, inFlight: [] };
+
+document.getElementById('sw-wnd-size').addEventListener('input', function() {
+  swState.wnd = parseInt(this.value);
+  document.getElementById('sw-wnd-label').textContent = swState.wnd;
+  document.getElementById('sw-wsize').textContent = swState.wnd;
+  renderSW();
+});
+
+function renderSW() {
+  const vis = document.getElementById('sw-vis');
+  vis.innerHTML = '';
+  for (let i = 0; i < swState.total; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'sw-seg';
+    seg.textContent = i + 1;
+    if (i < swState.base) seg.classList.add('sw-acked');
+    else if (swState.inFlight.includes(i)) seg.classList.add('sw-transit');
+    else if (i < swState.base + swState.wnd) seg.classList.add('sw-inwin');
+    else seg.classList.add('sw-unsent');
+    vis.appendChild(seg);
+  }
+  document.getElementById('sw-base').textContent = swState.base + 1;
+  document.getElementById('sw-next').textContent = swState.nextSeq + 1;
+}
+
+function swSend() {
+  if (swState.nextSeq >= swState.total) { swLog('No more segments to send.', 'var(--muted)'); return; }
+  if (swState.nextSeq >= swState.base + swState.wnd) { swLog('⚠ Window full — waiting for ACKs before sending more.', '#fbbf24'); return; }
+  const n = swState.nextSeq;
+  swState.inFlight.push(n);
+  swState.nextSeq++;
+  renderSW();
+  swLog(`▶ Sent segment ${n+1} (seq=${n*100})`, 'var(--tcp-light)');
+}
+
+function swAck() {
+  if (swState.inFlight.length === 0) { swLog('No in-flight segments to acknowledge.', 'var(--muted)'); return; }
+  const n = swState.inFlight.shift();
+  swState.base = Math.max(swState.base, n + 1);
+  renderSW();
+  swLog(`✓ ACK received for segment ${n+1}. Window slides to base=${swState.base+1}`, '#34d399');
+}
+
+function swLose() {
+  if (swState.inFlight.length === 0) { swLog('No in-flight segments.', 'var(--muted)'); return; }
+  const lost = swState.inFlight[0];
+  swLog(`✕ Segment ${lost+1} lost! Receiver sends 3× duplicate ACK for seg ${lost}`, '#f87171');
+  setTimeout(() => { swLog(`⚡ Fast Retransmit: Resending segment ${lost+1} immediately (no timeout wait)`, '#fbbf24'); }, 600);
+  setTimeout(() => { swLog(`✓ Retransmitted segment ${lost+1} acknowledged. Continuing...`, '#34d399'); }, 1200);
+}
+
+function swReset() {
+  swState = { total: 16, base: 0, nextSeq: 0, wnd: parseInt(document.getElementById('sw-wnd-size').value), inFlight: [] };
+  renderSW();
+  document.getElementById('sw-log').innerHTML = '<div style="color:var(--muted)">Simulation ready.</div>';
+}
+
+function swLog(msg, col) {
+  const log = document.getElementById('sw-log');
+  const d = document.createElement('div');
+  d.innerHTML = `<span style="color:${col}">${msg}</span>`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ===== FLOW CONTROL SIM 2 =====
+let fc2 = { buf: 0, max: 10, inflight: 0 };
+
+function initFc2Buffer() {
+  const el = document.getElementById('fc2-buffer');
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < fc2.max; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'buf-slot';
+    slot.id = 'fc2-slot-' + i;
+    slot.style.width = '28px'; slot.style.height = '28px';
+    el.appendChild(slot);
+  }
+}
+
+function updateFc2() {
+  for (let i = 0; i < fc2.max; i++) {
+    const slot = document.getElementById('fc2-slot-' + i);
+    if (!slot) continue;
+    slot.className = 'buf-slot';
+    if (i < fc2.buf) slot.classList.add(fc2.buf >= fc2.max ? 'full' : 'filled');
+    slot.textContent = '';
+  }
+  const rwnd = (fc2.max - fc2.buf);
+  document.getElementById('fc2-rwnd').textContent = rwnd + ' KB';
+  document.getElementById('fc2-inflight').textContent = fc2.inflight + ' KB';
+  document.getElementById('fc2-used').textContent = fc2.buf + ' KB';
+  document.getElementById('fc2-free').textContent = rwnd + ' KB';
+  const st = document.getElementById('fc2-sender-status');
+  if (rwnd === 0) { st.textContent = 'BLOCKED (rwnd=0)'; st.style.color = '#f87171'; }
+  else { st.textContent = 'ACTIVE'; st.style.color = '#34d399'; }
+}
+
+function fc2Log(msg, col) {
+  const log = document.getElementById('fc2-log');
+  const d = document.createElement('div');
+  d.innerHTML = `<span style="color:${col||'#94a3b8'}">${msg}</span>`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function fc2Send() {
+  const room = fc2.max - fc2.buf;
+  if (room === 0) { fc2Log('⚠ rwnd=0 — Sender is BLOCKED! No more data until receiver reads.', '#f87171'); return; }
+  const fill = Math.min(2, room);
+  fc2.buf += fill; fc2.inflight += fill;
+  updateFc2();
+  fc2Log(`📨 ${fill} KB received → buf=${fc2.buf}KB, rwnd=${fc2.max-fc2.buf}KB advertised to sender`, 'var(--tcp-light)');
+}
+
+function fc2Read() {
+  if (fc2.buf === 0) { fc2Log('Buffer empty.', 'var(--muted)'); return; }
+  const r = Math.min(2, fc2.buf);
+  fc2.buf -= r; fc2.inflight = Math.max(0, fc2.inflight - r);
+  updateFc2();
+  fc2Log(`📖 App consumed ${r}KB → buf=${fc2.buf}KB, rwnd now=${fc2.max-fc2.buf}KB — ACK sent to sender`, '#34d399');
+}
+
+function fc2Reset() {
+  fc2 = { buf: 0, max: 10, inflight: 0 };
+  initFc2Buffer();
+  updateFc2();
+  document.getElementById('fc2-log').innerHTML = '<div style="color:var(--muted)">Reset.</div>';
+}
+
+// ===== TEARDOWN SIM =====
+let tdRunning = false;
+function runTeardown() {
+  if (tdRunning) return;
+  tdRunning = true;
+  const ch = document.getElementById('td-channel');
+  ch.innerHTML = '';
+  const log = document.getElementById('td-log');
+  log.innerHTML = '';
+
+  const steps = [
+    { delay: 300,  dir: 'right', label: 'FIN  seq=x', color: '#f87171', clientState: 'FIN_WAIT_1', serverState: 'ESTABLISHED', logMsg: '▶ Client sends FIN — "I am done sending data"', logColor: '#f87171' },
+    { delay: 1100, dir: 'left',  label: 'ACK  ack=x+1', color: '#34d399', clientState: 'FIN_WAIT_2', serverState: 'CLOSE_WAIT', logMsg: '◀ Server ACKs FIN — it may still send data (half-close)', logColor: '#34d399' },
+    { delay: 2000, dir: 'left',  label: 'FIN  seq=y', color: '#f87171', clientState: 'TIME_WAIT', serverState: 'LAST_ACK', logMsg: '◀ Server sends FIN — "I am also done sending"', logColor: '#fbbf24' },
+    { delay: 2900, dir: 'right', label: 'ACK  ack=y+1', color: '#34d399', clientState: 'TIME_WAIT (2×MSL)', serverState: 'CLOSED', logMsg: '▶ Client ACKs server FIN. Client enters TIME_WAIT (2×MSL ≈ 60s)', logColor: '#a78bfa' },
+  ];
+
+  steps.forEach(step => {
+    setTimeout(() => {
+      const cs = document.getElementById('td-client-state');
+      const ss = document.getElementById('td-server-state');
+      cs.textContent = step.clientState;
+      ss.textContent = step.serverState;
+      cs.style.background = step.clientState.includes('TIME_WAIT') ? 'rgba(245,158,11,0.1)' : 'var(--red-dim)';
+      cs.style.color = step.clientState.includes('TIME_WAIT') ? '#fbbf24' : '#f87171';
+      ss.style.background = step.serverState === 'CLOSED' ? 'rgba(100,116,139,0.1)' : 'var(--red-dim)';
+      ss.style.color = step.serverState === 'CLOSED' ? 'var(--muted)' : '#f87171';
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; width:100%; position:relative; animation: fadeInRow 0.4s ease;';
+      const arrow = document.createElement('div');
+      arrow.style.cssText = `flex:1; height:2px; background:${step.color}; position:relative;`;
+      const tip = document.createElement('div');
+      if (step.dir === 'right') tip.style.cssText = `position:absolute; right:-1px; top:-5px; border:6px solid transparent; border-left-color:${step.color};`;
+      else tip.style.cssText = `position:absolute; left:-1px; top:-5px; border:6px solid transparent; border-right-color:${step.color};`;
+      arrow.appendChild(tip);
+      const lbl = document.createElement('div');
+      lbl.style.cssText = `position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:10px; padding:2px 8px; border-radius:4px; background:${step.color}22; color:${step.color}; white-space:nowrap; font-family:var(--mono); border:1px solid ${step.color}44;`;
+      lbl.textContent = step.label;
+      arrow.appendChild(lbl);
+      row.appendChild(arrow);
+      ch.appendChild(row);
+
+      const d = document.createElement('div');
+      d.innerHTML = `<span style="color:${step.logColor}">${step.logMsg}</span>`;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+
+      if (step.serverState === 'CLOSED') {
+        setTimeout(() => {
+          const d2 = document.createElement('div');
+          d2.innerHTML = '<span style="color:#34d399">✅ After 2×MSL client moves to CLOSED. Connection fully terminated.</span>';
+          log.appendChild(d2);
+          tdRunning = false;
+        }, 800);
+      }
+    }, step.delay);
+  });
+}
+
+function resetTeardown() {
+  tdRunning = false;
+  document.getElementById('td-channel').innerHTML = '';
+  document.getElementById('td-log').innerHTML = '<div style="color:var(--muted)">Click "Run Teardown" to begin.</div>';
+  document.getElementById('td-client-state').textContent = 'ESTABLISHED';
+  document.getElementById('td-client-state').style.background = 'var(--green-dim)';
+  document.getElementById('td-client-state').style.color = '#34d399';
+  document.getElementById('td-server-state').textContent = 'ESTABLISHED';
+  document.getElementById('td-server-state').style.background = 'var(--green-dim)';
+  document.getElementById('td-server-state').style.color = '#34d399';
+}
+
+// ===== INIT =====
+initFcBuffer();
+updateFcBuffer();
+initFc2Buffer();
+updateFc2();
+renderSW();
+
+// style active tab
+document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
+  b.addEventListener('click', function() {
+    document.querySelectorAll('[id^="tab-btn-"]').forEach(x => x.className = 'sim-btn btn-gray');
+    this.className = 'sim-btn btn-blue active-tab';
+  });
+});
+</script>
+</body>
+</html>
