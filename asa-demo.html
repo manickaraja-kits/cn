@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberGuard Academy — ASA Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --border: #0d3a5c;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --danger: #ff3366;
+    --warn: #ffcc00;
+    --text: #c8e6f5;
+    --muted: #4a7a99;
+    --grid: rgba(0,212,255,0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin-top: 20px;
+  }
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 6px;
+    letter-spacing: 2px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 20px 0;
+    flex-wrap: wrap;
+  }
+  .tab {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    text-shadow: 0 0 8px var(--accent);
+  }
+
+  /* CONTENT */
+  .content { max-width: 960px; margin: 0 auto; padding: 30px 20px 60px; }
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  /* CARDS */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+  .card.danger::before { background: var(--danger); }
+  .card.warn::before { background: var(--warn); }
+  .card.success::before { background: var(--accent3); }
+
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .card.danger .card-title { color: var(--danger); }
+  .card.warn .card-title { color: var(--warn); }
+  .card.success .card-title { color: var(--accent3); }
+
+  .card p { font-size: 0.95rem; line-height: 1.7; color: var(--text); margin-bottom: 10px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ANALOGY BOX */
+  .analogy {
+    background: rgba(255,107,53,0.08);
+    border: 1px dashed rgba(255,107,53,0.4);
+    border-radius: 4px;
+    padding: 18px 20px;
+    margin: 16px 0;
+    font-style: italic;
+    color: #ffb08a;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .analogy::before { content: '💡 Real World: '; font-style: normal; font-weight: 600; color: var(--accent2); }
+
+  /* SCENARIO SIMULATOR */
+  .scenario-box {
+    background: #000d14;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+  .scenario-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+  }
+  .scenario-story {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text);
+    min-height: 80px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .scenario-story .highlight { color: var(--accent3); font-weight: 600; }
+  .scenario-story .bad { color: var(--danger); }
+  .scenario-story .warn { color: var(--warn); }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    padding: 11px 22px;
+    border: 1px solid;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .btn-primary { border-color: var(--accent); color: var(--accent); }
+  .btn-primary:hover { background: rgba(0,212,255,0.15); box-shadow: 0 0 12px rgba(0,212,255,0.3); }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,51,102,0.15); }
+  .btn-success { border-color: var(--accent3); color: var(--accent3); }
+  .btn-success:hover { background: rgba(57,255,20,0.1); }
+
+  /* PROGRESS STEPS */
+  .steps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: #000d14;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.3s;
+    cursor: default;
+  }
+  .step.unlocked { border-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .step.locked { opacity: 0.4; }
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    min-width: 36px;
+    font-weight: 700;
+  }
+  .step.locked .step-num { color: var(--muted); }
+  .step-info { flex: 1; }
+  .step-name {
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .step-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .step.unlocked .step-desc { color: var(--text); }
+  .step-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    align-self: flex-start;
+  }
+  .badge-done { background: rgba(57,255,20,0.15); color: var(--accent3); border: 1px solid rgba(57,255,20,0.3); }
+  .badge-active { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
+  .badge-lock { background: rgba(74,122,153,0.1); color: var(--muted); border: 1px solid rgba(74,122,153,0.2); }
+
+  /* QUIZ */
+  .quiz-q {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    font-size: 0.9rem;
+    padding: 13px 18px;
+    border: 1px solid var(--border);
+    background: #000d14;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    font-family: 'Exo 2', sans-serif;
+    text-align: left;
+  }
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { border-color: var(--accent3); background: rgba(57,255,20,0.08); color: var(--accent3); }
+  .quiz-opt.wrong { border-color: var(--danger); background: rgba(255,51,102,0.08); color: var(--danger); }
+  .quiz-feedback {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; animation: fadeIn 0.3s; }
+  .quiz-feedback.ok { background: rgba(57,255,20,0.08); border: 1px solid rgba(57,255,20,0.3); color: var(--accent3); }
+  .quiz-feedback.fail { background: rgba(255,51,102,0.08); border: 1px solid rgba(255,51,102,0.3); color: #ff8099; }
+  .quiz-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    color: var(--accent);
+    text-align: center;
+    padding: 20px;
+    display: none;
+  }
+
+  /* GLOSSARY */
+  .glossary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 10px; }
+  .gloss-card {
+    background: #000d14;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .gloss-card:hover { border-color: var(--accent); }
+  .gloss-term {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .gloss-def { font-size: 0.85rem; color: var(--text); line-height: 1.6; }
+  .gloss-emoji { font-size: 1.4rem; margin-bottom: 8px; display: block; }
+
+  /* TERMINAL */
+  .terminal {
+    background: #000;
+    border: 1px solid var(--accent3);
+    border-radius: 4px;
+    padding: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent3);
+    line-height: 1.8;
+    margin: 20px 0;
+    min-height: 120px;
+    position: relative;
+  }
+  .terminal::before {
+    content: '● ● ●';
+    position: absolute;
+    top: 8px; left: 12px;
+    color: var(--muted);
+    font-size: 0.6rem;
+    letter-spacing: 4px;
+  }
+  .terminal-body { margin-top: 10px; }
+  .t-line { display: block; }
+  .t-prompt { color: var(--muted); }
+  .t-cmd { color: #fff; }
+  .t-out { color: var(--accent3); }
+  .t-warn { color: var(--warn); }
+  .t-err { color: var(--danger); }
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--accent3);
+    animation: blink 1s infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* PROGRESS BAR */
+  .progress-wrap { background: #000d14; border: 1px solid var(--border); border-radius: 2px; height: 6px; margin: 10px 0 20px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 0.5s ease; border-radius: 2px; }
+
+  /* SECTION HEADING */
+  .sec-heading {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    color: var(--accent);
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .sec-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; font-family: 'Share Tech Mono', monospace; }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: #030810;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); display: inline-block; margin-right: 6px; animation: blink 2s infinite; }
+
+  /* HIDDEN */
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <span><span class="status-dot"></span>SYSTEM SECURE — TRAINING MODE</span>
+  <span id="clock">--:--:--</span>
+  <span>CYBERGUARD ACADEMY v1.0</span>
+</div>
+
+<header>
+  <div class="logo">⚔ CYBERGUARD ACADEMY</div>
+  <div class="subtitle">// ACTIVE SECURITY ASSESSMENT — BEGINNER TRAINING MODULE //</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('intro')">01 WHAT IS ASA?</div>
+  <div class="tab" onclick="showTab('howworks')">02 HOW IT WORKS</div>
+  <div class="tab" onclick="showTab('simulator')">03 SIMULATOR</div>
+  <div class="tab" onclick="showTab('quiz')">04 QUIZ</div>
+  <div class="tab" onclick="showTab('glossary')">05 GLOSSARY</div>
+</div>
+
+<!-- ============ INTRO ============ -->
+<div class="content">
+<div class="section active" id="sec-intro">
+  <p class="sec-heading">What Is Active Security Assessment?</p>
+  <p class="sec-sub">// NO PRIOR KNOWLEDGE NEEDED — START HERE //</p>
+
+  <div class="card">
+    <div class="card-title">🏠 The House Burglar Analogy</div>
+    <p>Imagine you own a house. You want to know if it's truly safe. So you hire a <strong>trusted friend</strong> to try to break in — test the locks, check windows, try the back door.</p>
+    <p>They come back and say: <em>"Your garage lock is broken — a burglar could get in easily."</em> You fix it. Now you're safe.</p>
+    <div class="analogy">ASA does exactly the same thing — but for <strong>computer systems</strong>. Ethical hackers (good guys) try to "break in" to find weaknesses before real criminals do.</div>
+  </div>
+
+  <div class="card warn">
+    <div class="card-title">⚠️ Why Not Just Use Antivirus?</div>
+    <p>Antivirus is like a smoke alarm — it alerts you when fire has already started. ASA is like a fire marshal who <strong>inspects your building before anything goes wrong</strong>. Prevention beats reaction every time.</p>
+  </div>
+
+  <div class="card success">
+    <div class="card-title">✅ The 3 Golden Rules of ASA</div>
+    <p><strong>1. Permission First</strong> — You must have official approval to test a system. Testing without permission is illegal hacking.</p>
+    <p><strong>2. Keep It Secret</strong> — Users of the system must NOT know a test is happening, so they behave normally.</p>
+    <p><strong>3. Report Fast</strong> — If a serious weakness is found, report it immediately — don't wait for the final report while hackers might exploit it.</p>
+  </div>
+
+  <div class="card danger">
+    <div class="card-title">🚨 What Happens If You Don't Do ASA?</div>
+    <p>A school had 50,000 student records on their server. They never did a security test. A hacker found a basic password weakness and stole all the data — names, addresses, grades, everything.</p>
+    <p>A simple ASA test weeks earlier would have found that weakness in minutes.</p>
+  </div>
+</div>
+
+<!-- ============ HOW IT WORKS ============ -->
+<div class="section" id="sec-howworks">
+  <p class="sec-heading">How ASA Works — Step by Step</p>
+  <p class="sec-sub">// CLICK EACH PHASE TO LEARN MORE //</p>
+
+  <div class="steps" id="steps-container">
+    <div class="step unlocked" onclick="expandStep(this, 'plan')">
+      <div class="step-num">01</div>
+      <div class="step-info">
+        <div class="step-name">Planning Phase 📋</div>
+        <div class="step-desc">Define the target system, set goals, form the security team, get management approval, and set timing. Like planning a school fire drill — everyone in charge knows, but NOT the students.</div>
+      </div>
+      <span class="step-badge badge-active">PHASE 1</span>
+    </div>
+    <div class="step unlocked" onclick="expandStep(this, 'recon')">
+      <div class="step-num">02</div>
+      <div class="step-info">
+        <div class="step-name">Information Gathering 🔍</div>
+        <div class="step-desc">Testers quietly collect info about the system — IP addresses, software versions, open ports. Like a detective gathering clues before making an arrest.</div>
+      </div>
+      <span class="step-badge badge-active">PHASE 2</span>
+    </div>
+    <div class="step unlocked" onclick="expandStep(this, 'test')">
+      <div class="step-num">03</div>
+      <div class="step-info">
+        <div class="step-name">Testing & Probing 🛠️</div>
+        <div class="step-desc">The team actively tries to find weaknesses — testing passwords, checking for outdated software, trying to access restricted areas. Done at night/weekends so normal work isn't affected.</div>
+      </div>
+      <span class="step-badge badge-active">PHASE 3</span>
+    </div>
+    <div class="step unlocked" onclick="expandStep(this, 'report')">
+      <div class="step-num">04</div>
+      <div class="step-info">
+        <div class="step-name">Reporting Findings 📊</div>
+        <div class="step-desc">All vulnerabilities are documented with severity levels. Critical findings are reported IMMEDIATELY — not held until the final report. Time is everything in security.</div>
+      </div>
+      <span class="step-badge badge-active">PHASE 4</span>
+    </div>
+    <div class="step unlocked" onclick="expandStep(this, 'fix')">
+      <div class="step-num">05</div>
+      <div class="step-info">
+        <div class="step-name">Fixing & Hardening 🔒</div>
+        <div class="step-desc">Security team patches the vulnerabilities found. Like fixing the broken garage lock before a burglar notices it. Then the cycle restarts with a new ASA.</div>
+      </div>
+      <span class="step-badge badge-done">PHASE 5</span>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-body" id="terminal-out">
+      <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">asa --start-simulation --mode=beginner</span></span>
+      <span class="t-line t-out">[ OK ] ASA Training Module Loaded</span>
+      <span class="t-line t-out">[ OK ] Target: Demo School Network</span>
+      <span class="t-line t-warn">[ !! ] Click a phase above to see what happens...</span>
+      <span class="t-line"><span class="cursor"></span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SIMULATOR ============ -->
+<div class="section" id="sec-simulator">
+  <p class="sec-heading">🎮 Scenario Simulator</p>
+  <p class="sec-sub">// MAKE DECISIONS — SEE THE CONSEQUENCES //</p>
+
+  <div class="scenario-box">
+    <div class="scenario-title">▶ CURRENT SCENARIO</div>
+    <div class="scenario-story" id="story-text">
+      You are the IT Security Manager at <span class="highlight">Greenfield University</span>. The university stores 80,000 student records online. Your job is to decide how to handle security testing. What do you do first?
+    </div>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-bar" id="sim-progress" style="width:10%"></div></div>
+
+  <div class="btn-row" id="sim-buttons">
+    <button class="btn btn-primary" onclick="simChoice('a')">📋 Plan a proper ASA test with management approval</button>
+    <button class="btn btn-danger" onclick="simChoice('b')">⚡ Start testing immediately without telling anyone</button>
+    <button class="btn btn-success" onclick="simChoice('c')">📢 Announce to all staff that a security test is starting</button>
+  </div>
+
+  <div class="card hidden" id="sim-result" style="margin-top:20px;">
+    <div class="card-title" id="sim-result-title">RESULT</div>
+    <p id="sim-result-text"></p>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="nextScenario()" id="next-btn">→ NEXT SCENARIO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ QUIZ ============ -->
+<div class="section" id="sec-quiz">
+  <p class="sec-heading">🧠 Knowledge Check</p>
+  <p class="sec-sub">// TEST WHAT YOU LEARNED — 5 QUESTIONS //</p>
+
+  <div class="card" id="quiz-container">
+    <div class="card-title" id="q-counter">QUESTION 1 OF 5</div>
+    <div class="quiz-q" id="q-text"></div>
+    <div class="quiz-options" id="q-opts"></div>
+    <div class="quiz-feedback" id="q-feedback"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary hidden" id="q-next-btn" onclick="nextQuestion()">→ NEXT QUESTION</button>
+    </div>
+  </div>
+
+  <div class="quiz-score" id="quiz-score"></div>
+</div>
+
+<!-- ============ GLOSSARY ============ -->
+<div class="section" id="sec-glossary">
+  <p class="sec-heading">📖 Glossary</p>
+  <p class="sec-sub">// KEY TERMS — EXPLAINED IN PLAIN ENGLISH //</p>
+  <div class="glossary-grid">
+    <div class="gloss-card"><span class="gloss-emoji">🎯</span><div class="gloss-term">ASA</div><div class="gloss-def">Active Security Assessment. An official, planned process of testing a system's security by simulating real attacks.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🕵️</span><div class="gloss-term">PENETRATION TEST</div><div class="gloss-def">Also called "pen test." A simulated cyberattack on a system to find vulnerabilities. The "ethical hacking" version of breaking in.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🔓</span><div class="gloss-term">VULNERABILITY</div><div class="gloss-def">A weakness in a system — like a broken lock. Could be a weak password, outdated software, or misconfigured settings.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🎭</span><div class="gloss-term">ETHICAL HACKER</div><div class="gloss-def">A security expert hired to hack systems legally, with permission, to find weaknesses. Also called a "white hat hacker."</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">📊</span><div class="gloss-term">SCOPE</div><div class="gloss-def">Defines exactly what systems are being tested, what methods are allowed, and what is off-limits in an ASA project.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🔏</span><div class="gloss-term">NEED-TO-KNOW POLICY</div><div class="gloss-def">Only people who absolutely need to know about the ASA are informed. Regular users are kept unaware so they behave normally.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🦠</span><div class="gloss-term">EXPLOIT</div><div class="gloss-def">When a hacker uses a vulnerability to gain unauthorized access or cause damage. Like actually picking the broken lock.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🛡️</span><div class="gloss-term">COUNTERMEASURE</div><div class="gloss-def">A fix or protection put in place after a vulnerability is found. Like changing a lock after discovering it's broken.</div></div>
+    <div class="gloss-card"><span class="gloss-emoji">🌐</span><div class="gloss-term">TARGET SYSTEM</div><div class="gloss-def">The specific computer system, network, or application being tested in the ASA project.</div></div>
+  </div>
+</div>
+</div>
+
+<script>
+// Clock
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', {hour12: false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Tabs
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'quiz' && !quizStarted) initQuiz();
+}
+
+// Step expand
+const terminalMsgs = {
+  plan: ['[ PHASE 1 ] Planning initiated...', '[ OK ] Management approval: GRANTED', '[ OK ] ASA team assembled: 4 members', '[ OK ] Target scope defined: University LAN', '[ !! ] Users will NOT be notified (need-to-know policy)'],
+  recon: ['[ PHASE 2 ] Information gathering started...', '[ SCAN ] Domain: greenfield.edu — FOUND', '[ SCAN ] Open ports detected: 22, 80, 443, 3306', '[ WARN ] MySQL port 3306 exposed to internet!', '[ INFO ] Software versions collected for analysis'],
+  test: ['[ PHASE 3 ] Penetration testing at 2:00 AM...', '[ TEST ] Password brute-force simulation...', '[ FOUND! ] Weak admin password: "admin123"', '[ FOUND! ] Unpatched Apache 2.4.1 — 3 CVEs', '[ WARN ] CRITICAL vulnerability — reporting immediately!'],
+  report: ['[ PHASE 4 ] Generating security report...', '[ CRITICAL ] Weak passwords — Report to management NOW', '[ HIGH ] Unpatched software — Schedule fix this week', '[ MEDIUM ] Exposed database port — Firewall update needed', '[ OK ] Report delivered to security manager'],
+  fix: ['[ PHASE 5 ] Remediation in progress...', '[ FIX ] Admin password updated to strong passphrase', '[ FIX ] Apache updated to v2.4.58', '[ FIX ] MySQL port blocked at firewall', '[ SUCCESS ] All critical vulnerabilities patched!', '[ OK ] System security hardened — schedule next ASA in 6 months']
+};
+
+function expandStep(el, key) {
+  const terminal = document.getElementById('terminal-out');
+  const msgs = terminalMsgs[key];
+  terminal.innerHTML = '';
+  msgs.forEach((msg, i) => {
+    setTimeout(() => {
+      const line = document.createElement('span');
+      line.className = 't-line';
+      if (msg.includes('FOUND') || msg.includes('SUCCESS')) line.style.color = 'var(--accent3)';
+      else if (msg.includes('WARN') || msg.includes('CRITICAL')) line.style.color = 'var(--warn)';
+      else if (msg.includes('PHASE')) line.style.color = 'var(--accent)';
+      line.textContent = msg;
+      terminal.appendChild(line);
+      if (i === msgs.length - 1) {
+        const cursor = document.createElement('span');
+        cursor.innerHTML = '<span class="cursor"></span>';
+        terminal.appendChild(cursor);
+      }
+    }, i * 350);
+  });
+}
+
+// Simulator
+let simStep = 0;
+const scenarios = [
+  {
+    story: 'You are the IT Security Manager at <span class="highlight">Greenfield University</span>. The university stores 80,000 student records online. Your job is to decide how to handle security testing. What do you do first?',
+    opts: [
+      { id: 'a', label: '📋 Plan a proper ASA test with management approval', correct: true, result: { title: '✅ CORRECT DECISION', type: 'success', text: 'Excellent! Getting management approval is the foundation of any legal security test. Without it, the same actions would be considered criminal hacking. The university leadership is now on board and has allocated a budget for the ASA project.' } },
+      { id: 'b', label: '⚡ Start testing immediately without telling anyone', correct: false, result: { title: '❌ WRONG DECISION', type: 'danger', text: 'Testing a system without authorization is ILLEGAL — even if you work there! The IT manager was arrested and fired. Always get written permission before any security testing.' } },
+      { id: 'c', label: '📢 Announce to all staff that a security test is starting', correct: false, result: { title: '⚠️ PARTIALLY WRONG', type: 'warn', text: 'Announcing the test defeats its purpose! Staff will change their behaviors — use stronger passwords, be extra careful — making the results useless. We need to see NORMAL behavior. Only management should know.' } }
+    ]
+  },
+  {
+    story: 'Good job! Management has approved the test. During testing at <span class="highlight">3 AM</span>, the team discovers the student database has NO password — anyone on the internet can access it! What do you do?',
+    opts: [
+      { id: 'a', label: '📧 Add it to the final report due in 3 weeks', correct: false, result: { title: '❌ WRONG DECISION', type: 'danger', text: 'In those 3 weeks, a real hacker found the same vulnerability and downloaded all 80,000 student records. Critical vulnerabilities MUST be reported immediately — never wait for the final report!' } },
+      { id: 'b', label: '🚨 Report it to management immediately tonight', correct: true, result: { title: '✅ CORRECT DECISION', type: 'success', text: 'Perfect! The database was secured within 2 hours. Critical vulnerabilities require immediate action, not waiting for scheduled reports. Speed saves data.' } },
+      { id: 'c', label: '🤫 Quietly fix it yourself without telling anyone', correct: false, result: { title: '⚠️ WRONG DECISION', type: 'warn', text: 'Even with good intentions, making unauthorized changes to a production system can cause other problems and creates no documentation. Always follow the reporting chain — let the security team handle fixes officially.' } }
+    ]
+  },
+  {
+    story: 'Crisis averted! Now you need to schedule the penetration testing activities. The university runs 24/7 classes online. When should you perform the heavier, more intensive tests?',
+    opts: [
+      { id: 'a', label: '☀️ During peak hours — 9 AM to 5 PM weekdays', correct: false, result: { title: '❌ BAD TIMING', type: 'danger', text: 'The testing slowed down the network, affecting 2,000 students in online classes. Never run heavy tests during peak production hours!' } },
+      { id: 'b', label: '🌙 Late nights and weekends when usage is low', correct: true, result: { title: '✅ SMART TIMING!', type: 'success', text: 'Correct! Scheduling tests during low-usage periods minimizes disruption to normal operations. The tests ran smoothly with zero impact on students or staff.' } },
+      { id: 'c', label: '⚡ Randomly, to simulate a real attack more accurately', correct: false, result: { title: '⚠️ NOT IDEAL', type: 'warn', text: 'While randomness may seem realistic, causing unexpected slowdowns during class time creates chaos and undermines trust in your security team. Planned timing with minimal impact is better practice.' } }
+    ]
+  }
+];
+
+function simChoice(choice) {
+  const scenario = scenarios[simStep];
+  const opt = scenario.opts.find(o => o.id === choice);
+  const result = document.getElementById('sim-result');
+  const title = document.getElementById('sim-result-title');
+  const text = document.getElementById('sim-result-text');
+  const progress = document.getElementById('sim-progress');
+
+  result.classList.remove('hidden');
+  result.className = 'card ' + (opt.result.type === 'success' ? 'success' : opt.result.type === 'danger' ? 'danger' : 'warn');
+  title.textContent = opt.result.title;
+  text.textContent = opt.result.text;
+  document.getElementById('sim-buttons').style.opacity = '0.4';
+  document.getElementById('sim-buttons').style.pointerEvents = 'none';
+
+  progress.style.width = ((simStep + 1) / scenarios.length * 100) + '%';
+
+  if (simStep >= scenarios.length - 1) {
+    document.getElementById('next-btn').textContent = '🏆 COMPLETE!';
+    document.getElementById('next-btn').onclick = () => {
+      document.getElementById('story-text').innerHTML = '🎓 <span class="highlight">Training Complete!</span> You\'ve successfully navigated all 3 scenarios. You now understand the basics of Active Security Assessment. Well done, future security professional!';
+      document.getElementById('sim-result').classList.add('hidden');
+      document.getElementById('sim-buttons').style.display = 'none';
+    };
+  }
+}
+
+function nextScenario() {
+  simStep++;
+  if (simStep >= scenarios.length) return;
+  const scenario = scenarios[simStep];
+  document.getElementById('story-text').innerHTML = scenario.story;
+  document.getElementById('sim-result').classList.add('hidden');
+  document.getElementById('sim-buttons').style.opacity = '1';
+  document.getElementById('sim-buttons').style.pointerEvents = 'auto';
+  
+  const btns = document.getElementById('sim-buttons');
+  btns.innerHTML = '';
+  scenario.opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-primary';
+    btn.textContent = opt.label;
+    btn.onclick = () => simChoice(opt.id);
+    btns.appendChild(btn);
+  });
+}
+
+// QUIZ
+const questions = [
+  { q: 'Why should regular users NOT be told about an ASA (security test)?', opts: ['So they get scared', 'So they behave normally and don\'t change their habits', 'To save money on the project', 'Because it\'s a secret government project'], correct: 1, explain: 'If users know they\'re being tested, they\'ll behave more carefully than usual — making the test results inaccurate. We need to see normal, everyday behavior.' },
+  { q: 'When is the BEST time to run intensive security tests on a system used 9-5 daily?', opts: ['9 AM Monday morning', 'During lunch hour', 'Late at night or on weekends', 'Whenever the tester feels like it'], correct: 2, explain: 'Testing during off-hours (nights/weekends) prevents disruption to normal work. Heavy tests can slow systems down significantly.' },
+  { q: 'A tester finds a critical vulnerability that hackers could exploit RIGHT NOW. What should they do?', opts: ['Add it to the final report due in 4 weeks', 'Report it to security management immediately', 'Fix it themselves quietly', 'Ignore it — not their problem'], correct: 1, explain: 'Critical vulnerabilities must be reported immediately! Waiting weeks means real hackers might find and exploit the same weakness first. Time is everything in security.' },
+  { q: 'What makes ASA (ethical hacking) LEGAL compared to criminal hacking?', opts: ['Using a VPN while hacking', 'Wearing a hoodie while working', 'Having official written permission from the system owner', 'Being really good at computers'], correct: 2, explain: 'The single most important difference is PERMISSION. Ethical hackers have explicit written authorization. The same technical actions without permission are criminal offenses.' },
+  { q: 'What is a "vulnerability" in cybersecurity terms?', opts: ['A very fast computer', 'A weakness in a system that could be exploited by attackers', 'An expensive antivirus software', 'A type of computer virus'], correct: 1, explain: 'A vulnerability is a weakness — like a broken lock, a weak password, or outdated software. Attackers look for these weaknesses to gain unauthorized access.' }
+];
+
+let qIndex = 0, score = 0, quizStarted = false, answered = false;
+
+function initQuiz() {
+  quizStarted = true;
+  qIndex = 0; score = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  answered = false;
+  const q = questions[qIndex];
+  document.getElementById('q-counter').textContent = `QUESTION ${qIndex+1} OF ${questions.length}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-feedback').className = 'quiz-feedback';
+  document.getElementById('q-feedback').textContent = '';
+  document.getElementById('q-next-btn').classList.add('hidden');
+
+  const opts = document.getElementById('q-opts');
+  opts.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answer(i, btn);
+    opts.appendChild(btn);
+  });
+}
+
+function answer(idx, btn) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qIndex];
+  const fb = document.getElementById('q-feedback');
+  const allBtns = document.querySelectorAll('.quiz-opt');
+
+  allBtns[q.correct].classList.add('correct');
+  if (idx !== q.correct) {
+    btn.classList.add('wrong');
+    fb.className = 'quiz-feedback fail show';
+    fb.textContent = '✗ Not quite. ' + q.explain;
+  } else {
+    score++;
+    fb.className = 'quiz-feedback ok show';
+    fb.textContent = '✓ Correct! ' + q.explain;
+  }
+
+  allBtns.forEach(b => b.style.pointerEvents = 'none');
+  document.getElementById('q-next-btn').classList.remove('hidden');
+  document.getElementById('q-next-btn').textContent = qIndex < questions.length - 1 ? '→ NEXT QUESTION' : '🏆 SEE RESULTS';
+}
+
+function nextQuestion() {
+  qIndex++;
+  if (qIndex >= questions.length) {
+    document.getElementById('quiz-container').style.display = 'none';
+    const scoreEl = document.getElementById('quiz-score');
+    scoreEl.style.display = 'block';
+    const pct = Math.round(score / questions.length * 100);
+    let grade = pct >= 80 ? '🏆 EXCELLENT!' : pct >= 60 ? '✅ GOOD JOB!' : '📚 KEEP STUDYING!';
+    scoreEl.innerHTML = `${grade}<br><br>You scored <span style="color:var(--accent3)">${score} / ${questions.length}</span> (${pct}%)<br><br><button class="btn btn-primary" onclick="retryQuiz()">↺ TRY AGAIN</button>`;
+  } else {
+    showQuestion();
+  }
+}
+
+function retryQuiz() {
+  document.getElementById('quiz-container').style.display = 'block';
+  document.getElementById('quiz-score').style.display = 'none';
+  initQuiz();
+}
+</script>
+</body>
+</html>
