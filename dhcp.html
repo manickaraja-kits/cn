@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHCP — How your device gets an IP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F0E8;
+    --bg2: #EDE6D6;
+    --ink: #1A1714;
+    --ink2: #3D3830;
+    --ink3: #7A7268;
+    --accent: #C4440A;
+    --accent2: #2B5FA6;
+    --accent3: #1D7A54;
+    --rule: rgba(26,23,20,0.12);
+    --mono: 'DM Mono', monospace;
+    --serif: 'Playfair Display', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  html { font-size: 18px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── GRAIN OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    border-bottom: 1px solid var(--rule);
+    padding: 1.2rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  .logo span { color: var(--accent); }
+
+  nav {
+    display: flex;
+    gap: 2rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  nav a { text-decoration: none; color: inherit; transition: color .2s; }
+  nav a:hover { color: var(--ink); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 5rem 3rem 4rem;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: end;
+  }
+
+  .hero-left { }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(3.2rem, 6vw, 6.5rem);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-right {
+    padding-bottom: 0.5rem;
+  }
+
+  .hero-desc {
+    font-size: 1.05rem;
+    color: var(--ink2);
+    line-height: 1.7;
+    max-width: 440px;
+    margin-bottom: 1.8rem;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 2.5rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink3);
+  }
+
+  .hero-meta strong { display: block; font-size: 1.6rem; font-family: var(--serif); color: var(--ink); font-weight: 700; line-height: 1; margin-bottom: 0.25rem; }
+
+  /* ─── DORA STAGE SECTION ─── */
+  .main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 80vh;
+  }
+
+  /* ─── STAGE SELECTOR ─── */
+  .stage-panel {
+    border-right: 1px solid var(--rule);
+    padding: 3rem;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stage-list { list-style: none; }
+
+  .stage-item {
+    cursor: pointer;
+    padding: 1.4rem 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 1rem;
+    align-items: start;
+    transition: opacity .2s;
+  }
+
+  .stage-item:hover { opacity: 0.75; }
+  .stage-item.active { opacity: 1; }
+
+  .stage-num {
+    font-family: var(--serif);
+    font-size: 2.8rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--rule-color, var(--rule));
+    transition: color .3s;
+  }
+
+  .stage-item.active .stage-num { color: var(--stage-accent); }
+
+  .stage-body h3 {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+    color: var(--ink);
+    transition: color .3s;
+  }
+
+  .stage-body p {
+    font-size: 0.82rem;
+    color: var(--ink3);
+    line-height: 1.5;
+  }
+
+  .stage-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-bottom: 0.4rem;
+  }
+
+  /* ─── VISUAL PANEL ─── */
+  .visual-panel {
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .packet-diagram {
+    position: relative;
+    height: 340px;
+    margin-bottom: 2.5rem;
+  }
+
+  /* Devices */
+  .device-node {
+    position: absolute;
+    width: 110px;
+    text-align: center;
+  }
+
+  .device-node.client { left: 0; top: 50%; transform: translateY(-50%); }
+  .device-node.server { right: 0; top: 50%; transform: translateY(-50%); }
+
+  .device-icon {
+    width: 80px;
+    height: 64px;
+    border: 1.5px solid var(--rule);
+    border-radius: 10px;
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    transition: border-color .4s, background .4s;
+  }
+
+  .device-icon.lit {
+    border-color: var(--stage-accent, var(--accent));
+    background: white;
+  }
+
+  .device-icon svg { width: 36px; height: 36px; color: var(--ink3); transition: color .3s; }
+  .device-icon.lit svg { color: var(--stage-accent, var(--accent)); }
+
+  .device-name {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  .device-ip {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin-top: 0.15rem;
+    min-height: 1.1em;
+    transition: all .4s;
+  }
+
+  /* Wire */
+  .wire {
+    position: absolute;
+    left: 120px;
+    right: 120px;
+    top: 50%;
+    height: 1px;
+    background: var(--rule);
+    transform: translateY(-50%);
+  }
+
+  .wire::before, .wire::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--rule);
+  }
+  .wire::before { left: 0; }
+  .wire::after { right: 0; }
+
+  /* Packet */
+  .packet-anim {
+    position: absolute;
+    top: calc(50% - 20px);
+    left: 120px;
+    width: 160px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    background: var(--stage-accent-bg, #fff);
+    color: var(--stage-accent, var(--ink));
+    border: 1.5px solid var(--stage-accent, var(--rule));
+    opacity: 0;
+    transform: translateX(0);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .packet-anim.fly-right {
+    animation: flyRight 1.1s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  .packet-anim.fly-left {
+    animation: flyLeft 1.1s cubic-bezier(.4,0,.2,1) forwards;
+  }
+
+  @keyframes flyRight {
+    0%   { opacity: 0; transform: translateX(0px); }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(calc(100% + 40px)); }
+  }
+  @keyframes flyLeft {
+    0%   { opacity: 0; transform: translateX(0px); }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(calc(-100% - 40px)); }
+  }
+
+  /* Packet fields breakdown */
+  .packet-fields {
+    margin-bottom: 2rem;
+  }
+
+  .fields-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 0.8rem;
+  }
+
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.82rem;
+  }
+
+  .field-key {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink3);
+    letter-spacing: 0.04em;
+  }
+
+  .field-val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .field-val.hi { color: var(--stage-accent, var(--accent)); }
+
+  /* Large step display */
+  .step-display {
+    position: absolute;
+    bottom: 2rem;
+    right: 2.5rem;
+    font-family: var(--serif);
+    font-size: 7rem;
+    font-weight: 900;
+    line-height: 1;
+    color: rgba(26,23,20,0.05);
+    pointer-events: none;
+    transition: opacity .4s;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-strip {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .prog-seg {
+    flex: 1;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    border-right: 1px solid var(--rule);
+    transition: background .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .prog-seg:last-child { border-right: none; }
+  .prog-seg::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .35s;
+  }
+  .prog-seg.done::after { transform: scaleX(1); }
+  .prog-seg.active::after { transform: scaleX(0.5); background: var(--stage-accent, var(--accent)); }
+
+  .prog-letter {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--ink2);
+    line-height: 1;
+    margin-bottom: 0.1rem;
+  }
+  .prog-seg.active .prog-letter,
+  .prog-seg.done .prog-letter { color: var(--ink); }
+
+  .prog-word {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  /* ─── BOTTOM CONTROLS ─── */
+  .bottom-bar {
+    padding: 1.5rem 3rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink2);
+    padding: 0.7rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .btn:hover { background: var(--ink); color: var(--bg); }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+  .btn:disabled:hover { background: transparent; color: var(--ink); }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .btn-primary:hover { background: var(--accent); border-color: var(--accent); color: white; }
+
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.9rem;
+    border-radius: 20px;
+    background: var(--bg2);
+    border: 1px solid var(--rule);
+    color: var(--ink3);
+  }
+
+  .status-pill.active {
+    background: var(--stage-accent-bg, var(--bg2));
+    border-color: var(--stage-accent, var(--rule));
+    color: var(--stage-accent, var(--ink));
+  }
+
+  /* ─── EXPLAINER FOOTER ─── */
+  .explainer {
+    padding: 3rem;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .explain-block h4 {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+  }
+
+  .explain-block p {
+    font-size: 0.82rem;
+    color: var(--ink2);
+    line-height: 1.65;
+  }
+
+  .explain-block .tag {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    padding: 1.2rem 3rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink3);
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── STAGE THEMES ─── */
+  [data-stage="0"] { --stage-accent: #C4440A; --stage-accent-bg: #FFF1EA; }
+  [data-stage="1"] { --stage-accent: #1D7A54; --stage-accent-bg: #EAF7F2; }
+  [data-stage="2"] { --stage-accent: #2B5FA6; --stage-accent-bg: #EAF1FB; }
+  [data-stage="3"] { --stage-accent: #7A3DB8; --stage-accent-bg: #F3EDFB; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero { animation: fadeUp .7s ease both; }
+  .main-content { animation: fadeUp .7s .1s ease both; }
+
+  .stage-item { animation: fadeUp .5s ease both; }
+  .stage-item:nth-child(1) { animation-delay: .15s; }
+  .stage-item:nth-child(2) { animation-delay: .22s; }
+  .stage-item:nth-child(3) { animation-delay: .29s; }
+  .stage-item:nth-child(4) { animation-delay: .36s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">RFC <span>2131</span> · DHCP Protocol</div>
+  <nav>
+    <a href="#">Overview</a>
+    <a href="#">DORA</a>
+    <a href="#">Packets</a>
+    <a href="#">Leases</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="eyebrow">Dynamic Host Configuration Protocol</div>
+    <h1>How your<br>device gets<br>an <em>IP.</em></h1>
+  </div>
+  <div class="hero-right">
+    <p class="hero-desc">Every time a device connects to a network, it needs an IP address. DHCP automates that negotiation in four precise steps — a silent conversation that happens in milliseconds.</p>
+    <div class="hero-meta">
+      <div><strong>4</strong>Messages</div>
+      <div><strong>~ms</strong>Duration</div>
+      <div><strong>UDP</strong>Transport</div>
+      <div><strong>67/68</strong>Ports</div>
+    </div>
+  </div>
+</section>
+
+<div class="progress-strip" id="progress-strip">
+  <div class="prog-seg active" data-step="0" onclick="goStep(0)">
+    <div class="prog-letter">D</div>
+    <div class="prog-word">Discover</div>
+  </div>
+  <div class="prog-seg" data-step="1" onclick="goStep(1)">
+    <div class="prog-letter">O</div>
+    <div class="prog-word">Offer</div>
+  </div>
+  <div class="prog-seg" data-step="2" onclick="goStep(2)">
+    <div class="prog-letter">R</div>
+    <div class="prog-word">Request</div>
+  </div>
+  <div class="prog-seg" data-step="3" onclick="goStep(3)">
+    <div class="prog-letter">A</div>
+    <div class="prog-word">Acknowledge</div>
+  </div>
+</div>
+
+<div class="main-content" id="main-content" data-stage="0">
+  <!-- LEFT: stage list -->
+  <div class="stage-panel">
+    <div class="section-label">Protocol Steps</div>
+    <ul class="stage-list" id="stage-list">
+      <li class="stage-item active" data-step="0" onclick="goStep(0)">
+        <div class="stage-num">01</div>
+        <div class="stage-body">
+          <div class="stage-tag" style="background:#FFF1EA;color:#C4440A;">Broadcast</div>
+          <h3>Discover</h3>
+          <p>Device shouts into the void — "Any DHCP server here?" Sent from 0.0.0.0 to 255.255.255.255.</p>
+        </div>
+      </li>
+      <li class="stage-item" data-step="1" onclick="goStep(1)">
+        <div class="stage-num">02</div>
+        <div class="stage-body">
+          <div class="stage-tag" style="background:#EAF7F2;color:#1D7A54;">Unicast</div>
+          <h3>Offer</h3>
+          <p>Server proposes an IP, subnet, gateway, DNS servers, and a lease duration for the client.</p>
+        </div>
+      </li>
+      <li class="stage-item" data-step="2" onclick="goStep(2)">
+        <div class="stage-num">03</div>
+        <div class="stage-body">
+          <div class="stage-tag" style="background:#EAF1FB;color:#2B5FA6;">Broadcast</div>
+          <h3>Request</h3>
+          <p>Client formally accepts. Broadcasts so other servers know their offers were declined.</p>
+        </div>
+      </li>
+      <li class="stage-item" data-step="3" onclick="goStep(3)">
+        <div class="stage-num">04</div>
+        <div class="stage-body">
+          <div class="stage-tag" style="background:#F3EDFB;color:#7A3DB8;">Unicast</div>
+          <h3>Acknowledge</h3>
+          <p>Server confirms. Client configures interface. IP is live. Communication begins.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- RIGHT: visual -->
+  <div class="visual-panel">
+    <div class="section-label">Packet Diagram</div>
+
+    <div class="packet-diagram" id="packet-diagram">
+      <!-- Wire -->
+      <div class="wire"></div>
+
+      <!-- Client -->
+      <div class="device-node client">
+        <div class="device-icon lit" id="icon-client">
+          <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="30" height="20" rx="3"/>
+            <path d="M12 25v3M24 25v3M9 28h18"/>
+          </svg>
+        </div>
+        <div class="device-name">Client</div>
+        <div class="device-ip" id="client-ip">0.0.0.0</div>
+      </div>
+
+      <!-- Server -->
+      <div class="device-node server">
+        <div class="device-icon" id="icon-server">
+          <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="4" y="8" width="28" height="7" rx="2"/>
+            <rect x="4" y="19" width="28" height="7" rx="2"/>
+            <circle cx="27" cy="11.5" r="1.5" fill="currentColor" opacity=".5"/>
+            <circle cx="27" cy="22.5" r="1.5" fill="currentColor" opacity=".5"/>
+          </svg>
+        </div>
+        <div class="device-name">DHCP Server</div>
+        <div class="device-ip" id="server-ip">192.168.1.1</div>
+      </div>
+
+      <!-- Packet -->
+      <div class="packet-anim" id="packet-anim">DHCPDISCOVER</div>
+
+      <!-- Big step number -->
+      <div class="step-display" id="step-display">D</div>
+    </div>
+
+    <!-- Packet fields -->
+    <div class="packet-fields" id="packet-fields">
+      <div class="fields-label">Packet Contents</div>
+      <div id="fields-rows"></div>
+    </div>
+  </div>
+</div>
+
+<section class="explainer">
+  <div class="explain-block">
+    <span class="tag">What is a lease?</span>
+    <h4>Temporary ownership</h4>
+    <p>DHCP addresses are rented, not owned. Your router assigns IPs for a set duration — typically 24 hours. When 50% of the lease expires, your device quietly renegotiates before it runs out.</p>
+  </div>
+  <div class="explain-block">
+    <span class="tag">Why UDP?</span>
+    <h4>Bootstrap problem</h4>
+    <p>TCP requires an IP address to open a connection — but the whole point of DHCP is to get one. UDP broadcasts bypass this chicken-and-egg problem. Ports 67 (server) and 68 (client) are reserved.</p>
+  </div>
+  <div class="explain-block">
+    <span class="tag">Multiple servers</span>
+    <h4>The Request broadcast</h4>
+    <p>Step 3 is a broadcast even though the client already knows its server. This is intentional: other DHCP servers on the network see the request and withdraw their competing offers, freeing up those IPs.</p>
+  </div>
+</section>
+
+<div class="bottom-bar">
+  <button class="btn" id="btn-prev" onclick="prevStep()" disabled>← Previous</button>
+  <div class="status-pill" id="status-pill" data-active="true">Step 1 of 4 · Discover</div>
+  <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Next Step →</button>
+</div>
+
+<footer>
+  <span>DHCP — RFC 2131 · RFC 2132</span>
+  <span>Dynamic Host Configuration Protocol</span>
+  <span>Educational Demo</span>
+</footer>
+
+<script>
+const steps = [
+  {
+    name: 'Discover',
+    letter: 'D',
+    dir: 'right',
+    msg: 'DHCPDISCOVER',
+    clientActive: true,
+    clientIp: '0.0.0.0',
+    serverIp: '192.168.1.1',
+    fields: [
+      { key: 'message-type', val: 'DHCPDISCOVER', hi: true },
+      { key: 'src-ip',       val: '0.0.0.0', hi: false },
+      { key: 'dst-ip',       val: '255.255.255.255 (broadcast)', hi: true },
+      { key: 'src-port',     val: '68 (client)', hi: false },
+      { key: 'dst-port',     val: '67 (server)', hi: false },
+      { key: 'client-mac',   val: 'AA:BB:CC:DD:EE:FF', hi: false },
+      { key: 'xid',          val: '0x3D1D (transaction id)', hi: false },
+    ],
+  },
+  {
+    name: 'Offer',
+    letter: 'O',
+    dir: 'left',
+    msg: 'DHCPOFFER',
+    clientActive: false,
+    clientIp: '0.0.0.0',
+    serverIp: '192.168.1.1',
+    fields: [
+      { key: 'message-type',  val: 'DHCPOFFER', hi: true },
+      { key: 'offered-ip',    val: '192.168.1.42', hi: true },
+      { key: 'subnet-mask',   val: '255.255.255.0 (/24)', hi: false },
+      { key: 'default-gw',    val: '192.168.1.1', hi: false },
+      { key: 'dns-server',    val: '8.8.8.8, 8.8.4.4', hi: false },
+      { key: 'lease-time',    val: '86400 s (24 hours)', hi: false },
+      { key: 'server-id',     val: '192.168.1.1', hi: false },
+    ],
+  },
+  {
+    name: 'Request',
+    letter: 'R',
+    dir: 'right',
+    msg: 'DHCPREQUEST',
+    clientActive: true,
+    clientIp: '0.0.0.0',
+    serverIp: '192.168.1.1',
+    fields: [
+      { key: 'message-type',   val: 'DHCPREQUEST', hi: true },
+      { key: 'requested-ip',   val: '192.168.1.42', hi: true },
+      { key: 'server-id',      val: '192.168.1.1', hi: false },
+      { key: 'dst-ip',         val: '255.255.255.255 (broadcast)', hi: true },
+      { key: 'purpose',        val: 'Informs other servers to withdraw', hi: false },
+      { key: 'client-mac',     val: 'AA:BB:CC:DD:EE:FF', hi: false },
+      { key: 'xid',            val: '0x3D1D (same transaction)', hi: false },
+    ],
+  },
+  {
+    name: 'Acknowledge',
+    letter: 'A',
+    dir: 'left',
+    msg: 'DHCPACK',
+    clientActive: false,
+    clientIp: '192.168.1.42',
+    serverIp: '192.168.1.1',
+    fields: [
+      { key: 'message-type',  val: 'DHCPACK', hi: true },
+      { key: 'assigned-ip',   val: '192.168.1.42 ✓', hi: true },
+      { key: 'subnet-mask',   val: '255.255.255.0', hi: false },
+      { key: 'default-gw',    val: '192.168.1.1', hi: false },
+      { key: 'dns-server',    val: '8.8.8.8, 8.8.4.4', hi: false },
+      { key: 'lease-start',   val: 'Now · expires in 24h', hi: true },
+      { key: 'status',        val: 'Client is LIVE on network', hi: false },
+    ],
+  },
+];
+
+const stageColors = ['#C4440A','#1D7A54','#2B5FA6','#7A3DB8'];
+const stageBgs    = ['#FFF1EA','#EAF7F2','#EAF1FB','#F3EDFB'];
+
+let cur = 0;
+
+function render(step, animate) {
+  const s = steps[step];
+  const mc = document.getElementById('main-content');
+  mc.dataset.stage = step;
+
+  // Stage accent CSS
+  document.documentElement.style.setProperty('--stage-accent', stageColors[step]);
+  document.documentElement.style.setProperty('--stage-accent-bg', stageBgs[step]);
+
+  // Stage list
+  document.querySelectorAll('.stage-item').forEach((el, i) => {
+    el.classList.toggle('active', i === step);
+  });
+
+  // Progress segs
+  document.querySelectorAll('.prog-seg').forEach((el, i) => {
+    el.classList.remove('active','done');
+    if (i < step) el.classList.add('done');
+    if (i === step) el.classList.add('active');
+    el.style.setProperty('--stage-accent', stageColors[step]);
+  });
+
+  // Device icons
+  const iClient = document.getElementById('icon-client');
+  const iServer = document.getElementById('icon-server');
+  iClient.classList.toggle('lit', s.clientActive);
+  iServer.classList.toggle('lit', !s.clientActive);
+
+  // IPs
+  document.getElementById('client-ip').textContent = s.clientIp;
+  document.getElementById('server-ip').textContent = s.serverIp;
+
+  // Big letter
+  document.getElementById('step-display').textContent = s.letter;
+
+  // Packet animation
+  if (animate) {
+    const pkt = document.getElementById('packet-anim');
+    pkt.textContent = s.msg;
+    pkt.style.setProperty('background', stageBgs[step]);
+    pkt.style.setProperty('color', stageColors[step]);
+    pkt.style.setProperty('border-color', stageColors[step]);
+    pkt.style.left  = s.dir === 'right' ? '120px' : '';
+    pkt.style.right = s.dir === 'left'  ? '120px' : '';
+    pkt.style.left  = s.dir === 'left'  ? 'auto'  : pkt.style.left;
+    pkt.className = 'packet-anim';
+    void pkt.offsetWidth;
+    pkt.className = 'packet-anim fly-' + s.dir;
+  }
+
+  // Fields
+  const rows = document.getElementById('fields-rows');
+  rows.innerHTML = s.fields.map(f =>
+    `<div class="field-row">
+      <span class="field-key">${f.key}</span>
+      <span class="field-val${f.hi?' hi':''}">${f.val}</span>
+    </div>`
+  ).join('');
+
+  // Status pill
+  const pill = document.getElementById('status-pill');
+  pill.textContent = `Step ${step+1} of 4 · ${s.name}`;
+  pill.style.background = stageBgs[step];
+  pill.style.borderColor = stageColors[step];
+  pill.style.color = stageColors[step];
+
+  // Buttons
+  document.getElementById('btn-prev').disabled = step === 0;
+  document.getElementById('btn-next').disabled = step === steps.length - 1;
+  document.getElementById('btn-next').textContent = step === steps.length - 1 ? '✓ Complete' : 'Next Step →';
+}
+
+function goStep(i) {
+  cur = i;
+  render(cur, true);
+}
+
+function nextStep() {
+  if (cur < steps.length - 1) { cur++; render(cur, true); }
+}
+
+function prevStep() {
+  if (cur > 0) { cur--; render(cur, true); }
+}
+
+// Init
+render(0, false);
+</script>
+</body>
+</html>
